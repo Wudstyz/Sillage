@@ -442,4 +442,72 @@ final class SillageCoreTests: XCTestCase {
         let list = [entry("SFCO", at(8), at(9), .actual), entry("SFCO", at(9), at(10), .actual), entry("sfco", at(11), at(12), .actual)]
         XCTAssertEqual(Recents.recent(list, now: now).map(\.title), ["SFCO"])     // 2 contre 1, même si la dernière était en minuscules
     }
+
+    // MARK: Récap du jour
+
+    func testRecapSegmentsMergeGapsAndSimultaneous() {
+        let now = at(20)
+        let list = [
+            entry("Douche", at(7, 10), at(7, 40), .actual, "Hygiène"),
+            entry("Petit-déjeuner", at(7, 40), at(8, 10), .actual, "Repas"),
+            entry("SFCO", at(9), at(12), .actual, "Travail"),
+            entry("Sillage", at(10), at(11), .actual, "Loisirs"),          // en parallèle de SFCO
+            entry("Sieste", at(12, 3), at(12, 5), .actual, "Sommeil"),     // trou de 3 min avant : ignoré
+        ]
+        let r = Recap.build(list, on: day, now: now, calendar: cal)
+        // Douche | Petit-déj | trou 8h10–9h | SFCO | SFCO + Sillage | SFCO | trou 12h–12h03 ignoré | Sieste
+        XCTAssertEqual(r.segments.map { $0.isGap ? "—" : $0.title },
+                       ["Douche", "Petit-déjeuner", "—", "SFCO", "SFCO + Sillage", "SFCO", "Sieste"])
+        let gap = r.segments[2]
+        XCTAssertEqual(gap.start, at(8, 10)); XCTAssertEqual(gap.end, at(9)); XCTAssertEqual(gap.duration, 50 * 60)
+        XCTAssertTrue(r.hasSimultaneous)
+        XCTAssertEqual(r.firstStart, at(7, 10)); XCTAssertEqual(r.lastEnd, at(12, 5)); XCTAssertFalse(r.isStillRunning)
+        let h: TimeInterval = 3600
+        XCTAssertEqual(r.tracked, (30 + 30) * 60 + 3 * h + 2 * 60)            // 7h10–8h10, 9h–12h, 12h03–12h05 : le temps écoulé, une seule fois
+    }
+
+    func testRecapRunningTaskAndEmptyDay() {
+        let now = at(15)
+        let r = Recap.build([entry("Sillage", at(14), nil, .actual, "Loisirs")], on: day, now: now, calendar: cal)
+        XCTAssertTrue(r.isStillRunning); XCTAssertTrue(r.segments[0].isLive); XCTAssertEqual(r.tracked, 3600)
+        let empty = Recap.build([], on: day, now: now, calendar: cal)
+        XCTAssertTrue(empty.isEmpty)
+        XCTAssertTrue(Recap.markdown(empty, now: now).contains("Rien d'enregistré"))
+    }
+
+    func testRecapAppointmentStatuses() {
+        let now = at(15)
+        func plan(_ t: String, _ h1: Int, _ h2: Int) -> Entry { entry(t, at(h1), at(h2), .planned, "Santé") }
+        let honored = plan("Médecin", 9, 10), covered = plan("Dentiste", 11, 12), missed = plan("Banque", 13, 14)
+        let ongoing = plan("Réunion", 14, 16), upcoming = plan("Dîner", 19, 20)
+        let arrival = Entry(title: "Médecin", category: "Santé", kind: .actual, start: at(9, 10), end: at(10), plannedID: honored.id)
+        let list = [honored, covered, missed, ongoing, upcoming, arrival,
+                    entry("Chez le dentiste", at(11), at(11, 40), .actual, "Santé")]    // 40 min sur 60 : couvert
+        let r = Recap.build(list, on: day, now: now, calendar: cal)
+        let status = Dictionary(uniqueKeysWithValues: r.appointments.map { ($0.entry.title, $0.status) })
+        XCTAssertEqual(status["Médecin"], .honored("10 min de retard"))
+        XCTAssertEqual(status["Dentiste"], .covered)
+        XCTAssertEqual(status["Banque"], .missed)
+        XCTAssertEqual(status["Réunion"], .ongoing)
+        XCTAssertEqual(status["Dîner"], .upcoming)
+        XCTAssertEqual(r.appointments.map(\.entry.title), ["Médecin", "Dentiste", "Banque", "Réunion", "Dîner"])   // ordre chronologique
+    }
+
+    func testRecapMarkdown() {
+        let now = at(20)
+        let list = [entry("SFCO", at(9), at(10), .actual, "Travail"), entry("Réunion", at(9), at(9, 30), .planned, "Travail")]
+        let text = Recap.markdown(Recap.build(list, on: day, now: now, calendar: cal), now: now)
+        XCTAssertTrue(text.hasPrefix("# "))
+        XCTAssertTrue(text.contains("## Journée")); XCTAssertTrue(text.contains("SFCO")); XCTAssertTrue(text.contains("1 h 00"))
+        XCTAssertTrue(text.contains("## Temps par tâche")); XCTAssertTrue(text.contains("## Rendez-vous"))
+    }
+
+    func testOnlyTheSegmentTouchingNowIsLive() {
+        let now = at(18)
+        let list = [entry("SFCO", at(14), at(15), .actual, "Travail"), entry("Sillage", at(14), nil, .actual, "Loisirs")]
+        let r = Recap.build(list, on: day, now: now, calendar: cal)
+        XCTAssertEqual(r.segments.map(\.title), ["SFCO + Sillage", "Sillage"])
+        XCTAssertEqual(r.segments.map(\.isLive), [false, true])         // 14–15 est terminé ; 15–18 continue
+        XCTAssertTrue(r.segments[0].isRunning)                           // mais Sillage y tournait bel et bien
+    }
 }

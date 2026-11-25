@@ -10,52 +10,84 @@
 
 [Version française](README.md)
 
-<img src="docs/screenshots/01-journee.png" width="760" alt="Sillage: a day timeline, planned on the left, actual on the right">
-
-<br>
-
-<img src="docs/screenshots/02-semaine.png" width="374" alt="Week view"> <img src="docs/screenshots/03-mois.png" width="374" alt="Month view">
-
-<img src="docs/screenshots/04-taches.png" width="760" alt="Tasks view: time spent per task, chart and sessions">
+<img src="docs/screenshots/01-journee.png" width="800" alt="Sillage: a day timeline, planned on the left, actual on the right">
 
 </div>
 
-Sillage is a free, open-source Mac app that combines a **calendar** with a **log of your day**.
+Sillage is a free, open-source Mac app that combines a **calendar** with a **log of your day**. *(The interface is currently in French.)*
 
-- **Plan** your appointments: the doctor, a meeting… whatever happens, from this time to that time, you're there.
+- **Plan** your appointments: the doctor, a meeting… with repetition and reminders.
 - **Start a task** the moment you begin it (“I start the app at 4:34 PM”). You don't need to know when it will end: it stays *running* and keeps growing on the timeline until you stop it.
-- **Do several things at once**: simultaneous tasks sit side by side.
-- **In the evening, look back at your day**: from this time to that time, shower, lunch, the website, the appointment, bedtime. Planned (dashed) and actual (solid) face each other, with a **per-category summary**.
+- **Do several things at once**: simultaneous tasks sit side by side and their time is shared.
+- **Look back at your day**: from this time to that time, shower, lunch, the website, the appointment. Planned (dashed) and actual (solid) face each other.
+- **Know where your time goes**: how much on a given task, for a day, a week, a month, or since forever.
 
 Everything stays **on your Mac**: no account, no network, no data sent anywhere.
 
+## A tour
+
+### The day, as a timeline
+Two lanes: **Prévu** (Planned: appointments, tinted with an edge) and **Réel** (Actual: what you did, solid). An appointment honored with “J'y suis” (“I'm here”) shows how early or late you were. Drag in an empty area to create a range, drag a block to move it, stretch its bottom edge to change its duration: everything snaps to 15 minutes.
+
+### Week and month
+<img src="docs/screenshots/02-semaine.png" width="395" alt="Week view"> <img src="docs/screenshots/03-mois.png" width="395" alt="Month view">
+
+The **week** puts seven days side by side. The **month** gives one card per day: planned appointments and a **colour bar** of the time actually spent, by category.
+
+### Tasks: how long on what
+<img src="docs/screenshots/04-taches.png" width="800" alt="Tasks view: time spent per task, chart and sessions">
+
+Pick **Jour / Semaine / Mois / Tout** (Day / Week / Month / All time). Tasks with the same title are grouped (“SFCO”, “sfco” and “SFCO” = one task). Click one to see its **total, sessions, active days, average**, a **chart** per day (per week or month over a long period) and the list of its sessions.
+
+### The day recap
+<img src="docs/screenshots/05-recap.png" width="800" alt="Recap: the day hour by hour, appointments and time per task">
+
+Your day told hour by hour, with the **gaps** (“Non renseigné”, not filled in), simultaneous tasks, the outcome of each **appointment** (honored with its delay, covered by your activities, no trace, upcoming) and the **time per task**. **Copier** (Copy) or **Partager** (Share) sends it as text (mail, note, invoice…).
+
+The recap is not a step you must validate: it is **computed continuously** from your data. It is there for today, live, as for any past day. There is **no “End the day” button**: if you go to bed at 9 PM and stop a task the next morning, nothing breaks.
+
+### In the menu bar
+<img src="docs/screenshots/06-barre-de-menus.png" width="330" alt="Menu bar panel">
+
+The running task and its timer are always visible. The panel shows the next appointment (with **J'y suis**), stops a task, starts one, resumes a recent task or runs a shortcut, without opening the window. Closing the window keeps Sillage running; **Quitter** (Quit) stops it.
+
 ## Usage
 
+### Track your day
 | I want to… | I do… |
 |---|---|
-| Start a task now | Left panel: title, category, **Démarrer maintenant** (Start now) |
-| Repeat an appointment (physio every Wednesday, rent every month…) | In the sheet: **Répéter** (Repeat: day, week with chosen weekdays, month, year), “every N”, “until”. Each occurrence stays individually editable, movable and honorable; series are automatically extended one year ahead |
-| Delete a series | Open an occurrence → **Supprimer** (Delete) → “this occurrence only” or “this and following” (what was already lived is kept) |
-| Be warned before an appointment | In the sheet: **Rappel** (Reminder: at start, 5 min, 15 min, 1 h, 1 day before): macOS notification, even with the window closed |
+| Start a task now | Sidebar: title, category, **Démarrer maintenant** (Start now) |
 | Launch a common activity (shower, meal, sleep, commute, break, sport) | One click on a **shortcut** |
-| Switch from one task to the next | “Terminer la tâche en cours” checkbox (on by default) |
-| Work on two things at once | **Untick** “Terminer la tâche en cours”: both stay running, side by side on the timeline. The summary **shares the time** between simultaneous tasks (two tasks for 3 h: 1 h 30 each), so the total stays the time actually elapsed |
-| Stop a running task | ■ button under “En cours” (Running) |
-| Tell I've arrived at an appointment | Right-click the appointment → **J'y suis** (“I'm here”): the real task starts and the timeline shows how early or late you were |
-| Add an appointment | **+ → Rendez-vous prévu** (⌘N) |
-| Log something already done (shower, lunch…) | **+ → Activité passée** (⇧⌘N) |
-| Create a range directly | **Drag** in an empty part of the timeline (Prévu or Réel column), snapped to 15 minutes |
-| Move an activity | **Drag** the block |
-| Change its duration | **Stretch** the bottom edge of the block |
-| Fix a forgotten time | Click the block on the timeline |
-| Act without opening the window | **Menu bar**: the running task and its timer are shown there; the panel shows the next appointment (with **J'y suis**), lets you stop a task, start one or use a shortcut. Closing the window keeps Sillage running; **Quitter** (Quit) stops it |
-| Know how long I spent on a task | **Tâches** (Tasks) view (⌘4): pick **Jour / Semaine / Mois / Tout** (Day / Week / Month / All time). The list ranks your tasks (“SFCO”, “Sillage”…; identical titles are grouped); click one to see its **total, sessions, active days, daily average**, a **chart** per day (or per week / month over a long period) and the list of its sessions. In the sidebar, the summary switches between **Catégories** (Categories) and **Tâches** (Tasks) |
-| Resume a task I already did | **Récents** (Recent) section of the sidebar (and of the menu-bar panel): one click restarts it with its category |
-| Undo a mistake | **⌘Z** undoes the last change (create, move, delete, stop…), **⇧⌘Z** redoes it |
-| Change view | **Day / Week / Month** (selector top right, ⌘1 ⌘2 ⌘3). **Week** shows seven days side by side, planned dashed and actual solid; **month** shows one cell per day with its appointments and a **colour bar** of the time actually spent. Click a day to open it. The sidebar summary follows the displayed period |
-| Navigate | ‹ › or ⌘← ⌘→ (one day, week or month depending on the view); today: ⌘T |
+| Resume a task I already did | **Récents** (Recent) section: one click restarts it with its category |
+| Switch from one task to the next | “Terminer la tâche en cours” (Stop the running task) checkbox, on by default |
+| Work on two things at once | **Untick** “Terminer la tâche en cours”: both stay running, side by side. The summary **shares the time** between them (two tasks for 3 h: 1 h 30 each), so the total stays the time actually elapsed |
+| Stop a task | ■ button on its “En cours” (Running) card |
+| Log something already done | **+ → Activité passée** (⇧⌘N) |
 
-Data lives in `~/Library/Application Support/Sillage/data.json` (readable JSON, atomic writes). One copy per day is kept in `Sauvegardes/` (14 days). If the file ever becomes unreadable it is set aside (`data.corrompu-…`) and never overwritten. A task left “running” for more than 12 h is flagged as forgotten. The interface is currently in French.
+Sillage **doesn't guess anything**: a task keeps running until you stop it, even if the Mac sleeps or locks (you may simply be in the shower). A task left “running” for more than 12 h is flagged as probably forgotten, with a way to enter its end time.
+
+### Plan
+| I want to… | I do… |
+|---|---|
+| Add an appointment | **+ → Rendez-vous prévu** (⌘N) |
+| Say I've arrived | Right-click the appointment → **J'y suis**: the real task starts and the timeline shows how early or late you were |
+| Repeat it (physio every Wednesday, rent every month…) | Sheet → **Répéter** (Repeat): day, week (chosen weekdays), month, year; “every N”; “until”. Each occurrence stays individually editable, movable and honorable; series are extended one year ahead |
+| Delete a series | Open an occurrence → **Supprimer** (Delete) → “this occurrence only” or “this and following” (what was already lived is kept) |
+| Be warned | Sheet → **Rappel** (Reminder): at start, 5 min, 15 min, 1 h, 1 day before: macOS notification, even with the window closed |
+
+### View and fix
+| I want to… | I do… |
+|---|---|
+| Change view | **Jour / Semaine / Mois / Tâches / Récap** (Day / Week / Month / Tasks / Recap), ⌘1 to ⌘5 |
+| Navigate | ‹ › or ⌘← ⌘→ (one day, week or month depending on the view); today: ⌘T; a specific date: the calendar icon |
+| Create, move, stretch a range | **Drag** in an empty part of the timeline, drag a block, stretch its bottom edge |
+| Fix a time | Click the block (or the session in the Tasks view, or the recap row) |
+| See the summary by category or by task | Sidebar: **Catégories / Tâches**; it follows the displayed period |
+| Undo a mistake | **⌘Z** undoes the last change (create, move, delete, stop…), **⇧⌘Z** redoes it |
+
+## Your data
+
+It lives in `~/Library/Application Support/Sillage/data.json` (readable JSON, atomic writes). One copy per day is kept in `Sauvegardes/` (14 days). If the file ever becomes unreadable it is set aside (`data.corrompu-…`) and never overwritten. Nothing leaves your Mac.
 
 ## Install
 
@@ -72,14 +104,16 @@ Requires Xcode or its command-line tools (macOS 13+, Apple Silicon).
 swift test       # core tests
 ```
 
-The core (`SillageCore`) is separate from the SwiftUI interface (`SillageApp`); no third-party library.
+The core (`SillageCore`: model, time calculations, series, reports, recap, history) is separate from the SwiftUI interface (`SillageApp`) and covered by tests. No third-party library: only macOS frameworks.
 
 ## Ideas for later
 
-- Export / import (JSON, iCal) and reading your existing calendars
+- Export / import (JSON, CSV, iCal) and reading your existing calendars
 - Custom categories and shortcuts
+- Settings window and launch at login
 - Global keyboard shortcut to start / stop a task
-- End-of-day summary
+- “Focus”: say which simultaneous task you're on, for a more precise time split
+- Drag and create in the week view
 
 ## License
 

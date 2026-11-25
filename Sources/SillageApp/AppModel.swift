@@ -3,10 +3,13 @@ import SwiftUI
 import SillageCore
 
 enum ViewMode: String, CaseIterable, Identifiable {
-    case day, week, month, tasks
+    case day, week, month, tasks, recap
     var id: String { rawValue }
     var label: String {
-        switch self { case .day: return "Jour"; case .week: return "Semaine"; case .month: return "Mois"; case .tasks: return "Tâches" }
+        switch self {
+        case .day: return "Jour"; case .week: return "Semaine"; case .month: return "Mois"
+        case .tasks: return "Tâches"; case .recap: return "Récap"
+        }
     }
 }
 
@@ -93,6 +96,7 @@ final class AppModel: ObservableObject {
         case .week: return .week
         case .month: return .month
         case .tasks: return reportPeriod
+        case .recap: return .day
         }
     }
 
@@ -145,7 +149,11 @@ final class AppModel: ObservableObject {
         case .month: base = day.formatted(.dateTime.month(.wide).year()).capitalized
         case .all: base = "Tout l'historique"
         }
-        return viewMode == .tasks ? "Tâches · \(base)" : base
+        switch viewMode {
+        case .tasks: return "Tâches · \(base)"
+        case .recap: return "Récap · " + day.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+        default: return base
+        }
     }
 
     var periodBilanTitle: String {
