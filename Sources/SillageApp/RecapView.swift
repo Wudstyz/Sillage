@@ -117,6 +117,9 @@ struct RecapView: View {
                              ? "\(seg.entries.count) tâches simultanées · temps réparti"
                              : seg.category)
                             .font(Theme.rounded(12)).foregroundStyle(Theme.muted)
+                        ForEach(seg.notes, id: \.self) { note in
+                            Text(note).font(Theme.rounded(12)).italic().foregroundStyle(Theme.muted).lineLimit(2)
+                        }
                     }
                 }
                 Spacer()

@@ -37,12 +37,19 @@ La **semaine** met sept jours côte à côte. Le **mois** donne une carte par jo
 ### Les tâches : combien de temps sur quoi
 <img src="docs/screenshots/04-taches.png" width="800" alt="Vue Tâches : temps passé par tâche, graphique et séances">
 
-Choisissez **Jour / Semaine / Mois / Tout**. Les tâches de même titre sont regroupées (« SFCO », « sfco » et « SFCO » = une seule tâche). Un clic sur l'une montre son **total, ses séances, ses jours actifs, sa moyenne**, un **graphique** par jour (par semaine ou par mois sur une longue période) et la liste de ses séances.
+Choisissez **Jour / Semaine / Mois / Tout**. Les tâches de même titre sont regroupées (« SFCO », « sfco » et « SFCO » = une seule tâche). Un clic sur l'une montre son **total, ses séances, ses jours actifs, sa moyenne**, un **graphique** par jour (par semaine ou par mois sur une longue période) et la liste de ses séances, avec leurs notes.
+
+**Renommer… / fusionner** : une faute de frappe (« Sfco »), ou deux noms pour la même chose (« Facture » et « Facture CNPCO ») ? Le bouton **Renommer…** change le nom de toutes les séances d'un coup ; si le nouveau nom est celui d'une autre tâche, elles **fusionnent**. Une catégorie peut être appliquée en même temps, et **⌘Z** annule.
+
+### Vos objectifs
+<img src="docs/screenshots/09-objectifs.png" width="560" alt="Fenêtre Objectifs">
+
+Fixez un temps **à atteindre** (« SFCO : 20 h par semaine ») ou **à ne pas dépasser** (« Loisirs : 8 h par semaine »), sur une **tâche** ou une **catégorie**, par **jour, semaine ou mois**. L'avancement suit la période en cours : jauge, temps restant et, pour une semaine ou un mois, le **rythme à tenir par jour restant**. Une limite presque atteinte passe en orange, dépassée en rouge ; un objectif atteint est coché. Les objectifs s'affichent dans la barre latérale et dans le détail de la tâche. **⇧⌘O** ouvre la fenêtre, ou le bouton **Objectif…** d'une tâche.
 
 ### Le récap de la journée
 <img src="docs/screenshots/05-recap.png" width="800" alt="Récap : la journée heure par heure, rendez-vous et temps par tâche">
 
-La journée racontée heure par heure, avec les **trous** (« Non renseigné »), les tâches simultanées, l'état de chaque **rendez-vous** (honoré avec son retard, couvert par vos activités, sans trace, à venir) et le **temps par tâche**. **Copier** ou **Partager** l'envoie en texte (mail, note, facture…).
+La journée racontée heure par heure, avec les **trous** (« Non renseigné »), les tâches simultanées, l'état de chaque **rendez-vous** (honoré avec son retard, couvert par vos activités, sans trace, à venir) et le **temps par tâche**, avec vos **notes**. **Copier** ou **Partager** l'envoie en texte (mail, note, facture…).
 
 Le récap n'est pas une étape à valider : il est **calculé en continu** à partir de vos données. Il est là pour aujourd'hui, en direct, comme pour n'importe quel jour passé. Il n'y a **pas de bouton « Terminer la journée »** : si vous vous couchez à 21 h et arrêtez une tâche le lendemain, rien ne casse.
 
@@ -73,6 +80,7 @@ La tâche en cours et son chronomètre sont visibles en permanence. Le panneau m
 | Enchaîner deux tâches | Case « Terminer la tâche en cours » (cochée par défaut) |
 | Travailler sur deux choses à la fois | **Décocher** « Terminer la tâche en cours » : les deux restent en cours, côte à côte. Le bilan **répartit le temps** entre elles (deux tâches pendant 3 h : 1 h 30 chacune), donc le total reste le temps réellement écoulé |
 | Terminer une tâche | Bouton ■ de sa carte « En cours » |
+| Noter ce que j'ai fait | Champ **Notes** de la fiche (clic sur un bloc), ou « Ajouter une note… » sur la carte de la tâche en cours. Les notes apparaissent dans la liste des séances, le récap et le CSV |
 | Noter une activité déjà passée | **+ → Activité passée** (⇧⌘N) |
 
 Sillage **ne devine rien** : une tâche continue tant que vous ne l'arrêtez pas, même si le Mac s'endort ou se verrouille (vous êtes peut-être simplement parti à la douche). Une tâche restée « en cours » plus de 12 h est signalée comme probablement oubliée, avec la possibilité d'indiquer son heure de fin.
@@ -83,6 +91,7 @@ Sillage **ne devine rien** : une tâche continue tant que vous ne l'arrêtez pas
 | Ajouter un rendez-vous | **+ → Rendez-vous prévu** (⌘N) |
 | Signaler que je suis arrivé | Clic droit sur le rendez-vous → **J'y suis** : la tâche réelle démarre et la frise affiche le retard ou l'avance |
 | Le répéter (kiné chaque mercredi, loyer chaque mois…) | Fiche → **Répéter** : jour, semaine (jours au choix), mois, année ; « toutes les N » ; « jusqu'au ». Chaque occurrence reste modifiable, déplaçable et honorable séparément ; les séries sont prolongées un an à l'avance |
+| Modifier toute une série | Fiche d'une occurrence → **Appliquer à : Celle-ci et les suivantes**. Titre, heure, durée, rappel et note changent pour les suivantes (celles déjà vécues ne bougent pas) ; un changement de jour ne concerne que cette occurrence |
 | Supprimer une série | Fiche d'une occurrence → **Supprimer** → « Cette occurrence seulement » ou « Celle-ci et les suivantes » (ce qui a déjà été vécu reste) |
 | Voir mes rendez-vous de Calendrier / Google | **⇧⌘K** → activer « Afficher mes calendriers » (facultatif, lecture seule) |
 | Être prévenu | Fiche → **Rappel** (à l'heure, 5 min, 15 min, 1 h, 1 jour avant) : notification macOS, même fenêtre fermée |
@@ -94,6 +103,8 @@ Sillage **ne devine rien** : une tâche continue tant que vous ne l'arrêtez pas
 | Naviguer | ‹ › ou ⌘← ⌘→ (un jour, une semaine ou un mois selon la vue) ; aujourd'hui : ⌘T ; une date précise : l'icône calendrier |
 | Créer, déplacer, étirer une plage | **Glisser** dans le vide de la frise, glisser un bloc, étirer son bord bas |
 | Corriger une heure | Clic sur le bloc (ou sur la séance dans la vue Tâches, ou sur la ligne du récap) |
+| Corriger un nom de tâche, regrouper deux tâches | Vue Tâches → **Renommer…** (fusionne si le nom existe déjà) |
+| Fixer un objectif de temps | Vue Tâches → **Objectif…**, ou **⇧⌘O** |
 | Voir le bilan par catégorie ou par tâche | Barre latérale : **Catégories / Tâches** ; il suit la période affichée |
 | Annuler une erreur | **⌘Z** annule la dernière modification (créer, déplacer, supprimer, terminer…), **⇧⌘Z** la rétablit |
 | Sauvegarder, exporter ou restaurer mes données | **⇧⌘B** (ou la ligne « Copie de secours à… » en bas de la barre latérale) : voir [Vos données](#vos-données) |
@@ -108,7 +119,7 @@ Elles sont dans `~/Library/Application Support/Sillage/data.json` (JSON lisible)
 
 - **Copies de secours automatiques** : toutes les 10 minutes quand quelque chose change (les 48 dernières sont gardées), plus une par jour pendant 14 jours, plus une dernière à la fermeture de l'app. Un incident ne vous coûte donc que quelques minutes. Les copies sont dans `Sauvegardes/`. Un fichier illisible ou vide n'est jamais copié.
 - **Copie dans un dossier de votre choix** (iCloud Drive, disque externe…) : un fichier par jour, 30 jours gardés, mis à jour automatiquement ; si le disque est débranché, la copie reprend dès qu'il revient.
-- **Exporter** : une **sauvegarde complète** (`.json`) ou un **CSV** de tout l'historique ou de la période affichée, pour Excel ou Numbers.
+- **Exporter** : une **sauvegarde complète** (`.json`, avec vos séries et objectifs) ou un **CSV** de tout l'historique ou de la période affichée (avec les notes), pour Excel ou Numbers.
 - **Restaurer** depuis une sauvegarde complète ou une copie automatique : une confirmation est demandée, l'état actuel est gardé avant (`Sauvegardes/Avant-restauration/`), et **⌘Z** annule la restauration.
 
 ## Installation

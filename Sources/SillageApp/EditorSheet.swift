@@ -1,6 +1,8 @@
 import SwiftUI
 import SillageCore
 
+enum SeriesScope { case this, following }
+
 struct EditorSheet: View {
     @EnvironmentObject var model: AppModel
     @Environment(\.dismiss) private var dismiss
@@ -9,6 +11,7 @@ struct EditorSheet: View {
     @State private var hasEnd: Bool
     @State private var end: Date
     // Répétition (nouvelle série)
+    @State private var scope: SeriesScope = .this
     @State private var frequency: Recurrence.Frequency?
     @State private var interval = 1
     @State private var weekdays: Set<Int> = []
@@ -94,6 +97,7 @@ struct EditorSheet: View {
                     Toggle("Terminée", isOn: $hasEnd)
                     if hasEnd { DatePicker("Fin", selection: $end) }
                 }
+                notesField
             }
             if hasEnd && end <= entry.start {
                 Text("La fin doit être après le début.").font(.caption).foregroundStyle(.red)
@@ -117,6 +121,18 @@ struct EditorSheet: View {
         .fontDesign(.rounded)
     }
 
+    private var notesField: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Notes").font(.caption).foregroundStyle(.secondary)
+            TextEditor(text: Binding(get: { entry.notes ?? "" }, set: { entry.notes = $0.isEmpty ? nil : $0 }))
+                .font(Theme.rounded(13))
+                .frame(height: 64)
+                .padding(4)
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.white))
+                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(Theme.line))
+        }
+    }
+
     // MARK: Répétition
 
     private static let weekdayOrder: [(id: Int, letter: String)] =
@@ -125,7 +141,15 @@ struct EditorSheet: View {
     @ViewBuilder private var repeatSection: some View {
         if let existing = model.series(of: entry) {
             LabeledContent("Série") { Text(Self.summary(existing.rule)).foregroundStyle(.secondary) }
-            Text("Les changements ne concernent que cette occurrence.").font(.caption).foregroundStyle(.secondary)
+            Picker("Appliquer à", selection: $scope) {
+                Text("Cette occurrence").tag(SeriesScope.this)
+                Text("Celle-ci et les suivantes").tag(SeriesScope.following)
+            }
+            .pickerStyle(.segmented)
+            Text(scope == .this
+                 ? "Seule cette occurrence est modifiée."
+                 : "Le titre, l'heure, la durée, le rappel et la note changent aussi pour les suivantes ; celles déjà vécues (« J'y suis ») ne bougent pas. Un changement de jour ne concerne que celle-ci.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         } else {
             Picker("Répéter", selection: $frequency) {
                 Text("Jamais").tag(Recurrence.Frequency?.none)
@@ -207,7 +231,11 @@ struct EditorSheet: View {
                               weekdays: f == .weekly ? weekdays.sorted() : [],
                               until: hasUntil ? Calendar.current.startOfDay(for: until) : nil)
         }
-        model.save(e, recurrence: rule)
+        if planned, !target.isNew, e.seriesID != nil, scope == .following {
+            model.saveSeries(edited: e, original: target.entry)
+        } else {
+            model.save(e, recurrence: rule)
+        }
         dismiss()
     }
 }

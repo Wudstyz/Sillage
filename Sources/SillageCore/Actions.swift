@@ -49,4 +49,27 @@ public enum Actions {
         if m > 0 { return "dans \(DayLogic.formatDuration(TimeInterval(m * 60)))" }
         return m == 0 ? "maintenant" : "commencé il y a \(DayLogic.formatDuration(TimeInterval(-m * 60)))"
     }
+
+    /// Nombre de séances réelles d'une tâche (titres identiques à la casse, aux accents et aux espaces près).
+    public static func sessionCount(_ entries: [Entry], key: String) -> Int {
+        entries.filter { $0.kind == .actual && DayLogic.taskKey($0.title) == key }.count
+    }
+
+    /// Renomme toutes les séances réelles d'une tâche ; si le nouveau nom est celui d'une autre tâche, elles fusionnent.
+    /// `category` : si elle est donnée, toutes les séances passent dans cette catégorie. Les rendez-vous prévus ne changent pas.
+    public static func renameTask(_ entries: [Entry], key: String, to newTitle: String,
+                                  category: String? = nil) -> (entries: [Entry], changed: Int) {
+        let title = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else { return (entries, 0) }
+        var list = entries
+        var changed = 0
+        for i in list.indices where list[i].kind == .actual && DayLogic.taskKey(list[i].title) == key {
+            var e = list[i]
+            e.title = title
+            if let category { e.category = category }
+            if e != list[i] { changed += 1 }
+            list[i] = e
+        }
+        return (list, changed)
+    }
 }

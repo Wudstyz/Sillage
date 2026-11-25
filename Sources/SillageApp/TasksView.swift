@@ -5,6 +5,7 @@ import SillageCore
 /// Vue Tâches : combien de temps sur chaque tâche, pour un jour, une semaine, un mois ou depuis toujours.
 struct TasksView: View {
     @EnvironmentObject var model: AppModel
+    @State private var renaming: TaskSummary?
 
     var body: some View {
         let summaries = model.taskSummaries()
@@ -18,6 +19,15 @@ struct TasksView: View {
             }
         }
         .background(Theme.background)
+        .sheet(item: $renaming) { RenameTaskSheet(task: $0) }
+        .onChange(of: model.renameRequest) { key in openRename(key) }
+        .onAppear { openRename(model.renameRequest) }
+    }
+
+    private func openRename(_ key: String?) {
+        guard let key, let task = model.taskSummaries().first(where: { $0.key == key }) else { return }
+        renaming = task
+        model.renameRequest = nil
     }
 
     // MARK: Barre de période
@@ -97,6 +107,10 @@ struct TasksView: View {
                             .padding(.horizontal, 10).padding(.vertical, 4)
                             .background(Capsule().fill(color.opacity(0.14)))
                         Spacer()
+                        Button { renaming = s } label: { Label("Renommer…", systemImage: "pencil") }
+                            .buttonStyle(ChipButtonStyle(category: "Autre")).help("Renommer cette tâche partout, ou la fusionner avec une autre")
+                        Button { model.newGoal(forTask: s.title) } label: { Label("Objectif…", systemImage: "target") }
+                            .buttonStyle(ChipButtonStyle(category: s.category)).help("Fixer un temps à atteindre ou à ne pas dépasser")
                     }
 
                     HStack(spacing: 12) {
@@ -111,6 +125,7 @@ struct TasksView: View {
                             .font(Theme.rounded(12)).foregroundStyle(Theme.muted)
                     }
 
+                    goalsSection(s)
                     chart(s, color: color)
                     sessionsList(s)
                 }
@@ -122,6 +137,21 @@ struct TasksView: View {
                 Text("Choisissez une tâche pour voir son détail.").font(Theme.rounded(14)).foregroundStyle(Theme.muted)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    @ViewBuilder private func goalsSection(_ s: TaskSummary) -> some View {
+        let goals = model.goalProgress(forTask: s.key)
+        if !goals.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Objectifs").sectionLabel()
+                    Spacer()
+                    Button("Gérer…") { model.showGoals = true }.buttonStyle(.plain).font(Theme.rounded(12, .semibold)).foregroundStyle(Theme.accent)
+                }
+                ForEach(goals) { GoalProgressRow(progress: $0) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading).card()
         }
     }
 
@@ -194,6 +224,7 @@ struct TasksView: View {
             VStack(spacing: 0) {
                 ForEach(Array(shown.enumerated()), id: \.element.id) { index, e in
                     Button { model.editor = AppModel.EditorTarget(entry: e, isNew: false) } label: {
+                        VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 12) {
                             Text(e.start.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)))
                                 .font(Theme.rounded(13, .semibold)).foregroundStyle(Theme.ink).frame(width: 110, alignment: .leading)
@@ -201,6 +232,11 @@ struct TasksView: View {
                             Spacer()
                             Text(DayLogic.formatDuration(e.effectiveEnd(now: model.now).timeIntervalSince(e.start)))
                                 .font(Theme.rounded(13, .semibold)).monospacedDigit().foregroundStyle(Theme.ink)
+                        }
+                        if let note = e.trimmedNotes {
+                            Text(note).font(Theme.rounded(12)).italic().foregroundStyle(Theme.muted).lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                         }
                         .padding(.vertical, 9).contentShape(Rectangle())
                     }

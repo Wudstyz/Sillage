@@ -593,13 +593,13 @@ final class SillageCoreTests: XCTestCase {
             entry("Sillage", at(14), nil, .actual, "Loisirs"),
         ]
         let csv = CSVExport.csv(list, now: now, calendar: cal)
-        XCTAssertTrue(csv.hasPrefix("\u{FEFF}Type;Titre;Catégorie;Début;Fin;Durée (min);Durée (h:mm);En cours\r\n"))
+        XCTAssertTrue(csv.hasPrefix("\u{FEFF}Type;Titre;Catégorie;Début;Fin;Durée (min);Durée (h:mm);En cours;Notes\r\n"))
         let lines = csv.components(separatedBy: "\r\n").filter { !$0.isEmpty }
         XCTAssertEqual(lines.count, 4)
-        XCTAssertTrue(lines[1].hasPrefix("Prévu;Médecin;Santé;2026-11-25 09:00;2026-11-25 10:00;60;1:00;non"))   // triées par début
+        XCTAssertTrue(lines[1].hasPrefix("Prévu;Médecin;Santé;2026-11-25 09:00;2026-11-25 10:00;60;1:00;non;"))   // triées par début
         XCTAssertTrue(lines[2].contains("\"Réunion; \"\"client\"\"\""))                                       // échappement
-        XCTAssertTrue(lines[2].hasSuffix("90;1:30;non"))
-        XCTAssertTrue(lines[3].hasSuffix(";240;4:00;oui"))                                                      // en cours : jusqu'à maintenant
+        XCTAssertTrue(lines[2].hasSuffix("90;1:30;non;"))
+        XCTAssertTrue(lines[3].hasSuffix(";240;4:00;oui;"))                                                      // en cours : jusqu'à maintenant
         // une période : seulement ce qui la touche
         let onlyMorning = CSVExport.csv(list, now: now, from: at(0), to: at(10), calendar: cal)
         XCTAssertEqual(onlyMorning.components(separatedBy: "\r\n").filter { !$0.isEmpty }.count, 2)           // en-tête + Médecin
@@ -655,5 +655,116 @@ final class SillageCoreTests: XCTestCase {
         XCTAssertEqual(recap.appointments.first?.status, .honored("10 min de retard"))
         // si le calendrier est désactivé plus tard, le lien reste sans effet mais ne casse rien
         XCTAssertNil(Actions.punctuality(of: saved[0], in: saved))
+    }
+
+    // MARK: Renommer / fusionner, séries, notes, objectifs
+
+    func testRenameAndMergeTasks() {
+        let list = [entry("Sfco", at(9), at(10), .actual, "Travail"), entry("SFCO", at(11), at(12), .actual, "Travail"),
+                    entry("Facture", at(13), at(14), .actual, "Autre"),
+                    Entry(title: "Sfco", category: "Travail", kind: .planned, start: at(15), end: at(16))]     // un rendez-vous prévu ne change pas
+        XCTAssertEqual(Actions.sessionCount(list, key: "sfco"), 2)
+        let renamed = Actions.renameTask(list, key: "sfco", to: "  SFCO  ")
+        XCTAssertEqual(renamed.changed, 1)                                       // « SFCO » était déjà bon
+        XCTAssertEqual(renamed.entries.filter { $0.kind == .actual }.map(\.title), ["SFCO", "SFCO", "Facture"])
+        XCTAssertEqual(renamed.entries[3].title, "Sfco")
+        // fusion : « Facture » dans « SFCO », avec la catégorie de la cible
+        let merged = Actions.renameTask(renamed.entries, key: "facture", to: "SFCO", category: "Travail")
+        XCTAssertEqual(merged.changed, 1)
+        XCTAssertEqual(Actions.sessionCount(merged.entries, key: "sfco"), 3)
+        XCTAssertEqual(merged.entries[2].category, "Travail")
+        XCTAssertEqual(Actions.renameTask(list, key: "sfco", to: "   ").changed, 0)             // un nom vide est refusé
+    }
+
+    func testApplyToFollowingChangesOnlyLaterUnlivedOccurrences() {
+        let now = d(2026, 11, 2, 8)
+        var first = rdv(d(2026, 11, 2, 10)); first.title = "Kiné"
+        let (s0, f0) = Series.make(from: first, rule: Recurrence(frequency: .daily), calendar: fixed)
+        var series = [s0]; var entries = [f0]
+        Series.topUp(&series, entries: &entries, now: now, horizonDays: 6, calendar: fixed)   // 2 → 8 novembre
+        entries = Actions.arrive(entries, at: entries.first { $0.start == d(2026, 11, 6, 10) }!.id, now: d(2026, 11, 6, 10, 5), stopRunning: false)
+        let original = entries.first { $0.start == d(2026, 11, 4, 10) }!
+        var edited = original
+        edited.title = "Kiné du dos"; edited.start = d(2026, 11, 4, 11, 30); edited.end = d(2026, 11, 4, 12, 15); edited.notes = "Apporter la carte"
+        Series.applyToFollowing(original: original, edited: edited, series: &series, entries: &entries, calendar: fixed)
+        let planned = entries.filter { $0.kind == .planned }.sorted { $0.start < $1.start }
+        XCTAssertEqual(planned.map(\.title), ["Kiné", "Kiné", "Kiné du dos", "Kiné du dos", "Kiné", "Kiné du dos", "Kiné du dos"])   // le 6 était vécu : intact
+        XCTAssertEqual(planned.map { fixed.component(.hour, from: $0.start) }, [10, 10, 11, 11, 10, 11, 11])
+        XCTAssertEqual(planned[5].end, d(2026, 11, 7, 12, 15))                  // durée de 45 min reportée
+        XCTAssertEqual(planned[2].notes, "Apporter la carte")
+        XCTAssertEqual(series[0].template.title, "Kiné du dos")
+        // les occurrences générées plus tard suivent le nouveau modèle
+        Series.topUp(&series, entries: &entries, now: d(2026, 11, 8, 8), horizonDays: 6, calendar: fixed)
+        let later = entries.first { $0.start == d(2026, 11, 12, 11, 30) }
+        XCTAssertEqual(later?.title, "Kiné du dos")
+        XCTAssertNotNil(later?.end)
+    }
+
+    func testApplyToFollowingCanMoveOnlyTheEditedDate() {
+        let now = d(2026, 11, 2, 8)
+        let (s0, f0) = Series.make(from: rdv(d(2026, 11, 2, 10)), rule: Recurrence(frequency: .daily), calendar: fixed)
+        var series = [s0]; var entries = [f0]
+        Series.topUp(&series, entries: &entries, now: now, horizonDays: 3, calendar: fixed)
+        let original = entries.first { $0.start == d(2026, 11, 3, 10) }!
+        var edited = original; edited.start = d(2026, 11, 3, 15); edited.end = d(2026, 11, 3, 16)
+        Series.applyToFollowing(original: original, edited: edited, series: &series, entries: &entries, calendar: fixed)
+        XCTAssertEqual(entries.filter { $0.id == original.id }.first?.start, d(2026, 11, 3, 15))
+        XCTAssertEqual(entries.first { fixed.component(.day, from: $0.start) == 4 }?.start, d(2026, 11, 4, 15))   // même jour, nouvelle heure
+        XCTAssertEqual(entries.first { fixed.component(.day, from: $0.start) == 2 }?.start, d(2026, 11, 2, 10))   // avant : intact
+    }
+
+    func testNotesFlowIntoRecapAndCSV() {
+        let now = at(20)
+        var a = entry("SFCO", at(9), at(10), .actual, "Travail"); a.notes = "  Corrigé le bug du panier  "
+        let r = Recap.build([a], on: day, now: now, calendar: cal)
+        XCTAssertEqual(r.segments[0].notes, ["Corrigé le bug du panier"])
+        XCTAssertTrue(Recap.markdown(r, now: now).contains("  - _Corrigé le bug du panier_"))
+        XCTAssertTrue(CSVExport.csv([a], now: now, calendar: cal).contains("Corrigé le bug du panier"))
+        XCTAssertNil(entry("x", at(9), at(10)).trimmedNotes)
+    }
+
+    func testGoalProgressForTasksCategoriesAndStates() {
+        let now = d(2026, 11, 25, 12)                                            // mercredi ; semaine du 23 au 29
+        func e(_ t: String, _ day: Int, _ h1: Int, _ h2: Int, _ cat: String = "Travail") -> Entry {
+            Entry(title: t, category: cat, kind: .actual, start: d(2026, 11, day, h1), end: d(2026, 11, day, h2))
+        }
+        let list = [e("SFCO", 23, 9, 13), e("sfco", 24, 9, 12), e("SFCO", 25, 9, 11), e("Sillage", 24, 9, 12, "Loisirs"), e("SFCO", 16, 9, 17)]
+        let weekly = Goal(taskKey: "sfco", title: "SFCO", hours: 20, period: .week)
+        let p = Goals.progress(weekly, entries: list, anchor: now, now: now, calendar: fixed)
+        // SFCO : lundi 4 h + mardi 3 h (3 h partagées avec Sillage → 1 h 30) + mercredi 2 h ; la semaine précédente est ignorée
+        let hour: TimeInterval = 3600
+        let monday: TimeInterval = 4 * hour, tuesday: TimeInterval = 1.5 * hour, wednesday: TimeInterval = 2 * hour
+        let doneExpected: TimeInterval = monday + tuesday + wednesday
+        XCTAssertEqual(p.done, doneExpected)
+        XCTAssertEqual(p.state, .inProgress)
+        XCTAssertEqual(p.daysLeft, 5)                                            // mercredi → dimanche
+        let missing: TimeInterval = 20 * hour - doneExpected
+        XCTAssertEqual(try XCTUnwrap(p.perRemainingDay), missing / 5, accuracy: 0.1)
+        XCTAssertEqual(Goals.progress(Goal(taskKey: "sfco", title: "SFCO", hours: 7, period: .week), entries: list, anchor: now, now: now, calendar: fixed).state, .reached)
+        // « au plus » : dépassé
+        XCTAssertEqual(Goals.progress(Goal(category: "Loisirs", title: "Loisirs", hours: 1, period: .week, kind: .atMost),
+                                      entries: list, anchor: now, now: now, calendar: fixed).state, .exceeded)
+        // objectif du jour
+        let daily = Goals.progress(Goal(taskKey: "sfco", title: "SFCO", hours: 3, period: .day), entries: list, anchor: now, now: now, calendar: fixed)
+        XCTAssertEqual(daily.done, wednesday); XCTAssertNil(daily.perRemainingDay)
+    }
+
+    func testStoreKeepsGoalsAndOldFilesStillLoad() throws {
+        let dir = tempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = Store(url: dir.appendingPathComponent("data.json"))
+        let goal = Goal(taskKey: "sfco", title: "SFCO", hours: 20, period: .week)
+        try store.save([entry("a", at(9), at(10))], series: [], goals: [goal])
+        XCTAssertEqual(store.load().goals, [goal])
+        let backup = dir.appendingPathComponent("sauvegarde.json")
+        try Store.export(entries: [entry("a", at(9), at(10))], series: [], goals: [goal], to: backup)
+        XCTAssertEqual(Store.readBackup(at: backup)?.goals, [goal])
+        // un ancien fichier (sans objectifs ni notes) se lit toujours
+        let old = dir.appendingPathComponent("ancien.json")
+        try Data(#"{"entries":[{"id":"6F0B9C1E-0000-4000-8000-000000000001","title":"a","category":"Autre","kind":"actual","start":"2026-11-25T08:00:00Z"}]}"#.utf8).write(to: old)
+        let r = Store.readBackup(at: old)
+        XCTAssertEqual(r?.entries.count, 1); XCTAssertEqual(r?.goals, []); XCTAssertNil(r?.entries[0].notes)
+        // des objectifs seuls suffisent à rendre le fichier « non vide » pour les copies de secours
+        try store.save([], series: [], goals: [goal])
+        XCTAssertNotNil(store.snapshotIfNeeded(now: at(9), force: true))
     }
 }

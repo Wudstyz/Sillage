@@ -84,7 +84,7 @@ public struct Series: Codable, Identifiable, Equatable, Sendable {
                let s = calendar.date(bySettingHour: tod.hour!, minute: tod.minute!, second: 0, of: day) {
                 out.append(Entry(title: template.title, category: template.category, kind: .planned, start: s,
                                  end: s.addingTimeInterval(duration), seriesID: id,
-                                 reminderMinutes: template.reminderMinutes))
+                                 reminderMinutes: template.reminderMinutes, notes: template.notes))
             }
             day = calendar.date(byAdding: .day, value: 1, to: day)!
             guardCount += 1
@@ -106,6 +106,45 @@ public struct Series: Codable, Identifiable, Equatable, Sendable {
             changed = true
         }
         return changed
+    }
+
+    /// Applique la modification d'une occurrence à elle-même et à toutes les suivantes de sa série.
+    /// L'occurrence modifiée reçoit tout (y compris une nouvelle date) ; les suivantes reçoivent le titre, la catégorie, le rappel,
+    /// la note, l'heure de début et la durée (leur jour ne change pas). Les occurrences déjà vécues (« J'y suis ») ne bougent pas,
+    /// et celles d'avant ne sont pas touchées. Le modèle de la série est mis à jour : les occurrences générées plus tard suivent.
+    public static func applyToFollowing(original: Entry, edited: Entry, series: inout [Series], entries: inout [Entry],
+                                        calendar: Calendar = .current) {
+        guard let id = edited.seriesID ?? original.seriesID else { return }
+        let snapshot = entries
+        let time = calendar.dateComponents([.hour, .minute], from: edited.start)
+        let duration = (edited.end ?? edited.start.addingTimeInterval(3600)).timeIntervalSince(edited.start)
+
+        for i in entries.indices where entries[i].seriesID == id && entries[i].kind == .planned {
+            if entries[i].id == edited.id {
+                entries[i] = edited
+            } else if entries[i].start > original.start, !Actions.isArrived(entries[i], in: snapshot),
+                      let start = calendar.date(bySettingHour: time.hour!, minute: time.minute!, second: 0, of: entries[i].start) {
+                entries[i].title = edited.title
+                entries[i].category = edited.category
+                entries[i].reminderMinutes = edited.reminderMinutes
+                entries[i].notes = edited.notes
+                entries[i].start = start
+                entries[i].end = start.addingTimeInterval(duration)
+            }
+        }
+        // Le modèle : mêmes champs, première occurrence à la nouvelle heure.
+        if let k = series.firstIndex(where: { $0.id == id }) {
+            var t = series[k].template
+            t.title = edited.title
+            t.category = edited.category
+            t.reminderMinutes = edited.reminderMinutes
+            t.notes = edited.notes
+            if let start = calendar.date(bySettingHour: time.hour!, minute: time.minute!, second: 0, of: t.start) {
+                t.start = start
+                t.end = start.addingTimeInterval(duration)
+            }
+            series[k].template = t
+        }
     }
 
     /// Met fin à la série à partir de `from` : supprime les occurrences suivantes pas encore honorées

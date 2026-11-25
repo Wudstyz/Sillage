@@ -22,9 +22,11 @@ public struct Entry: Codable, Identifiable, Equatable, Sendable {
     public var reminderMinutes: Int?
     /// Rendez-vous venu d'un calendrier externe (nom du calendrier) : affiché en lecture seule, jamais enregistré.
     public var source: String?
+    /// Note libre sur la séance ou le rendez-vous (ce qui a été fait, à retenir…).
+    public var notes: String?
 
     public init(id: UUID = UUID(), title: String, category: String, kind: EntryKind, start: Date, end: Date? = nil,
-                plannedID: UUID? = nil, seriesID: UUID? = nil, reminderMinutes: Int? = nil, source: String? = nil) {
+                plannedID: UUID? = nil, seriesID: UUID? = nil, reminderMinutes: Int? = nil, source: String? = nil, notes: String? = nil) {
         self.id = id
         self.title = title
         self.category = category
@@ -35,6 +37,13 @@ public struct Entry: Codable, Identifiable, Equatable, Sendable {
         self.seriesID = seriesID
         self.reminderMinutes = reminderMinutes
         self.source = source
+        self.notes = notes
+    }
+
+    /// La note sans espaces superflus, ou `nil` si elle est vide.
+    public var trimmedNotes: String? {
+        let t = notes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return t.isEmpty ? nil : t
     }
 
     public var isExternal: Bool { source != nil }

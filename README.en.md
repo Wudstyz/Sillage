@@ -37,12 +37,19 @@ The **week** puts seven days side by side. The **month** gives one card per day:
 ### Tasks: how long on what
 <img src="docs/screenshots/04-taches.png" width="800" alt="Tasks view: time spent per task, chart and sessions">
 
-Pick **Jour / Semaine / Mois / Tout** (Day / Week / Month / All time). Tasks with the same title are grouped (“SFCO”, “sfco” and “SFCO” = one task). Click one to see its **total, sessions, active days, average**, a **chart** per day (per week or month over a long period) and the list of its sessions.
+Pick **Jour / Semaine / Mois / Tout** (Day / Week / Month / All time). Tasks with the same title are grouped (“SFCO”, “sfco” and “SFCO” = one task). Click one to see its **total, sessions, active days, average**, a **chart** per day (per week or month over a long period) and the list of its sessions, with their notes.
+
+**Rename… / merge**: a typo (“Sfco”), or two names for the same thing (“Facture” and “Facture CNPCO”)? The **Renommer…** (Rename) button changes the name of all its sessions at once; if the new name is another task's, they **merge**. A category can be applied at the same time, and **⌘Z** undoes it.
+
+### Your goals
+<img src="docs/screenshots/09-objectifs.png" width="560" alt="Goals window">
+
+Set a time **to reach** (“SFCO: 20 h per week”) or **not to exceed** (“Leisure: 8 h per week”), on a **task** or a **category**, per **day, week or month**. Progress follows the current period: gauge, time left and, for a week or month, the **pace to keep per remaining day**. A limit nearly reached turns orange, exceeded turns red; a reached goal is ticked. Goals show in the sidebar and in the task's detail. **⇧⌘O** opens the window, or use a task's **Objectif…** button.
 
 ### The day recap
 <img src="docs/screenshots/05-recap.png" width="800" alt="Recap: the day hour by hour, appointments and time per task">
 
-Your day told hour by hour, with the **gaps** (“Non renseigné”, not filled in), simultaneous tasks, the outcome of each **appointment** (honored with its delay, covered by your activities, no trace, upcoming) and the **time per task**. **Copier** (Copy) or **Partager** (Share) sends it as text (mail, note, invoice…).
+Your day told hour by hour, with the **gaps** (“Non renseigné”, not filled in), simultaneous tasks, the outcome of each **appointment** (honored with its delay, covered by your activities, no trace, upcoming) and the **time per task**, with your **notes**. **Copier** (Copy) or **Partager** (Share) sends it as text (mail, note, invoice…).
 
 The recap is not a step you must validate: it is **computed continuously** from your data. It is there for today, live, as for any past day. There is **no “End the day” button**: if you go to bed at 9 PM and stop a task the next morning, nothing breaks.
 
@@ -73,6 +80,7 @@ The running task and its timer are always visible. The panel shows the next appo
 | Switch from one task to the next | “Terminer la tâche en cours” (Stop the running task) checkbox, on by default |
 | Work on two things at once | **Untick** “Terminer la tâche en cours”: both stay running, side by side. The summary **shares the time** between them (two tasks for 3 h: 1 h 30 each), so the total stays the time actually elapsed |
 | Stop a task | ■ button on its “En cours” (Running) card |
+| Note what I did | **Notes** field of the sheet (click a block), or “Ajouter une note…” on the running task's card. Notes appear in the session list, the recap and the CSV |
 | Log something already done | **+ → Activité passée** (⇧⌘N) |
 
 Sillage **doesn't guess anything**: a task keeps running until you stop it, even if the Mac sleeps or locks (you may simply be in the shower). A task left “running” for more than 12 h is flagged as probably forgotten, with a way to enter its end time.
@@ -83,6 +91,7 @@ Sillage **doesn't guess anything**: a task keeps running until you stop it, even
 | Add an appointment | **+ → Rendez-vous prévu** (⌘N) |
 | Say I've arrived | Right-click the appointment → **J'y suis**: the real task starts and the timeline shows how early or late you were |
 | Repeat it (physio every Wednesday, rent every month…) | Sheet → **Répéter** (Repeat): day, week (chosen weekdays), month, year; “every N”; “until”. Each occurrence stays individually editable, movable and honorable; series are extended one year ahead |
+| Edit a whole series | Open an occurrence → **Appliquer à: Celle-ci et les suivantes** (Apply to: this and following). Title, time, duration, reminder and note change for the following ones (already lived ones don't move); a change of day only applies to this occurrence |
 | Delete a series | Open an occurrence → **Supprimer** (Delete) → “this occurrence only” or “this and following” (what was already lived is kept) |
 | See my Calendar / Google appointments | **⇧⌘K** → turn on “Afficher mes calendriers” (optional, read-only) |
 | Be warned | Sheet → **Rappel** (Reminder): at start, 5 min, 15 min, 1 h, 1 day before: macOS notification, even with the window closed |
@@ -94,6 +103,8 @@ Sillage **doesn't guess anything**: a task keeps running until you stop it, even
 | Navigate | ‹ › or ⌘← ⌘→ (one day, week or month depending on the view); today: ⌘T; a specific date: the calendar icon |
 | Create, move, stretch a range | **Drag** in an empty part of the timeline, drag a block, stretch its bottom edge |
 | Fix a time | Click the block (or the session in the Tasks view, or the recap row) |
+| Fix a task name, group two tasks | Tasks view → **Renommer…** (merges if the name already exists) |
+| Set a time goal | Tasks view → **Objectif…**, or **⇧⌘O** |
 | See the summary by category or by task | Sidebar: **Catégories / Tâches**; it follows the displayed period |
 | Undo a mistake | **⌘Z** undoes the last change (create, move, delete, stop…), **⇧⌘Z** redoes it |
 | Back up, export or restore my data | **⇧⌘B** (or the “Copie de secours à…” line at the bottom of the sidebar): see [Your data](#your-data) |
@@ -108,7 +119,7 @@ It lives in `~/Library/Application Support/Sillage/data.json` (readable JSON). E
 
 - **Automatic safety copies**: every 10 minutes when something changes (the last 48 are kept), plus one per day for 14 days, plus a last one when the app quits. An incident costs you a few minutes at most. Copies are in `Sauvegardes/`. An unreadable or empty file is never copied.
 - **Copy to a folder of your choice** (iCloud Drive, external disk…): one file per day, 30 days kept, updated automatically; if the disk is unplugged, copying resumes as soon as it's back.
-- **Export**: a **full backup** (`.json`) or a **CSV** of the whole history or of the displayed period, for Excel or Numbers.
+- **Export**: a **full backup** (`.json`, with your series and goals) or a **CSV** of the whole history or of the displayed period (with notes), for Excel or Numbers.
 - **Restore** from a full backup or an automatic copy: a confirmation is asked, the current state is kept first (`Sauvegardes/Avant-restauration/`), and **⌘Z** undoes the restore.
 
 ## Install

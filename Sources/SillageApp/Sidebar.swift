@@ -16,8 +16,10 @@ struct Sidebar: View {
                 startSection
                 recentsSection
                 shortcutsSection
+                goalsSection
                 bilanSection
                 VStack(spacing: 8) {
+                    if model.goals.isEmpty { goalsFooter }
                     calendarsFooter
                     backupFooter
                 }
@@ -70,6 +72,13 @@ struct Sidebar: View {
                 .font(.system(size: 34, weight: .bold, design: .rounded)).monospacedDigit().foregroundStyle(Theme.ink)
             Text("depuis \(e.start.formatted(date: .omitted, time: .shortened)) · \(e.category)")
                 .font(Theme.rounded(12)).foregroundStyle(Theme.muted)
+            Button { model.editor = AppModel.EditorTarget(entry: e, isNew: false) } label: {
+                Label(e.trimmedNotes ?? "Ajouter une note…", systemImage: "square.and.pencil")
+                    .font(Theme.rounded(12)).italic(e.trimmedNotes != nil)
+                    .foregroundStyle(e.trimmedNotes == nil ? Theme.accent : Theme.muted).lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
             if forgotten {
                 VStack(alignment: .leading, spacing: 6) {
                     Label("Oubliée ? En cours depuis \(DayLogic.formatDuration(model.now.timeIntervalSince(e.start))).",
@@ -135,6 +144,22 @@ struct Sidebar: View {
 
     // MARK: Sauvegarde
 
+    private var goalsFooter: some View {
+        Button { model.showGoals = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "target").foregroundStyle(Theme.accent)
+                Text("Objectifs").font(Theme.rounded(12, .medium)).foregroundStyle(Theme.muted)
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(Theme.muted)
+            }
+            .padding(.vertical, 8).padding(.horizontal, 10)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.ink.opacity(0.04)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Fixer des objectifs de temps (⇧⌘O)")
+    }
+
     private var calendarsFooter: some View {
         Button { model.showCalendars = true } label: {
             HStack(spacing: 8) {
@@ -168,6 +193,30 @@ struct Sidebar: View {
         }
         .buttonStyle(.plain)
         .help("Sauvegarde automatique, export et restauration (⇧⌘B)")
+    }
+
+    // MARK: Objectifs
+
+    @ViewBuilder private var goalsSection: some View {
+        let progress = model.goalProgress()
+        if !progress.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Objectifs").sectionLabel()
+                Button { model.showGoals = true } label: {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(Array(progress.prefix(4))) { GoalProgressRow(progress: $0, showCaption: false) }
+                        if progress.count > 4 {
+                            Text("+ \(progress.count - 4) autre\(progress.count - 4 > 1 ? "s" : "")").font(Theme.rounded(11)).foregroundStyle(Theme.muted)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .card()
+                .help("Voir et modifier les objectifs")
+            }
+        }
     }
 
     // MARK: Récents

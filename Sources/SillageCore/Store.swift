@@ -13,7 +13,7 @@ public struct Store {
         return Store(url: base.appendingPathComponent("Sillage/data.json"))
     }
 
-    private struct File: Codable { var entries: [Entry]; var series: [Series]? }
+    private struct File: Codable { var entries: [Entry]; var series: [Series]?; var goals: [Goal]? }
 
     private static var decoder: JSONDecoder {
         let d = JSONDecoder()
@@ -31,6 +31,7 @@ public struct Store {
     public struct LoadResult: Equatable {
         public var entries: [Entry]
         public var series: [Series] = []
+        public var goals: [Goal] = []
         /// Si le fichier était illisible : l'endroit où il a été mis de côté (il n'est jamais écrasé).
         public var quarantinedAt: URL?
     }
@@ -40,7 +41,7 @@ public struct Store {
     public func load() -> LoadResult {
         guard let data = try? Data(contentsOf: url) else { return LoadResult(entries: [], quarantinedAt: nil) }
         if let file = try? Self.decoder.decode(File.self, from: data) {
-            return LoadResult(entries: file.entries, series: file.series ?? [], quarantinedAt: nil)
+            return LoadResult(entries: file.entries, series: file.series ?? [], goals: file.goals ?? [], quarantinedAt: nil)
         }
         let stamp = Self.stamp(Date(), format: "yyyy-MM-dd-HHmmss")
         let aside = url.deletingLastPathComponent().appendingPathComponent("data.corrompu-\(stamp).json")
@@ -53,10 +54,10 @@ public struct Store {
 
     /// Écriture atomique (un plantage en cours d'écriture ne corrompt pas le fichier),
     /// précédée d'une sauvegarde quotidienne.
-    public func save(_ entries: [Entry], series: [Series] = []) throws {
+    public func save(_ entries: [Entry], series: [Series] = [], goals: [Goal] = []) throws {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         backupIfNeeded()
-        try Self.encoder.encode(File(entries: entries, series: series)).write(to: url, options: .atomic)
+        try Self.encoder.encode(File(entries: entries, series: series, goals: goals)).write(to: url, options: .atomic)
     }
 
     public var backupsDirectory: URL { url.deletingLastPathComponent().appendingPathComponent("Sauvegardes") }
@@ -87,7 +88,7 @@ public struct Store {
     /// Octets du fichier de données s'il est lisible et non vide (on ne sauvegarde jamais un fichier illisible ni vide).
     private func validCurrentData() -> Data? {
         guard let data = try? Data(contentsOf: url), let file = try? Self.decoder.decode(File.self, from: data),
-              !(file.entries.isEmpty && (file.series ?? []).isEmpty) else { return nil }
+              !(file.entries.isEmpty && (file.series ?? []).isEmpty && (file.goals ?? []).isEmpty) else { return nil }
         return data
     }
 
@@ -149,14 +150,14 @@ public struct Store {
     }
 
     /// Écrit une sauvegarde complète (même format que le fichier de données) à l'endroit voulu.
-    public static func export(entries: [Entry], series: [Series], to url: URL) throws {
-        try encoder.encode(File(entries: entries, series: series)).write(to: url, options: .atomic)
+    public static func export(entries: [Entry], series: [Series], goals: [Goal] = [], to url: URL) throws {
+        try encoder.encode(File(entries: entries, series: series, goals: goals)).write(to: url, options: .atomic)
     }
 
     /// Lit une sauvegarde : `nil` si le fichier n'est pas une sauvegarde Sillage valide.
-    public static func readBackup(at url: URL) -> (entries: [Entry], series: [Series])? {
+    public static func readBackup(at url: URL) -> (entries: [Entry], series: [Series], goals: [Goal])? {
         guard let data = try? Data(contentsOf: url), let file = try? decoder.decode(File.self, from: data) else { return nil }
-        return (file.entries, file.series ?? [])
+        return (file.entries, file.series ?? [], file.goals ?? [])
     }
 
     private static func stamp(_ date: Date, format: String) -> String {

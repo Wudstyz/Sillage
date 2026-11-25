@@ -42,6 +42,12 @@ public struct RecapSegment: Equatable, Identifiable, Sendable {
         return out.joined(separator: " + ")
     }
     public var category: String { entries.first?.category ?? "Autre" }
+    /// Notes des activités de la plage (sans doublons).
+    public var notes: [String] {
+        var seen = Set<String>(), out: [String] = []
+        for e in entries { if let n = e.trimmedNotes, seen.insert(n).inserted { out.append(n) } }
+        return out
+    }
 }
 
 public struct TaskTotal: Equatable, Sendable {
@@ -150,6 +156,7 @@ public enum Recap {
                 let range = s.isLive ? "\(time(s.start)) – en cours" : "\(time(s.start)) – \(time(s.end))"
                 let what = s.isGap ? "(non renseigné)" : s.title
                 lines.append("- \(range) · \(what) · \(DayLogic.formatDuration(s.duration))")
+                for n in s.notes { lines.append("  - _\(n.replacingOccurrences(of: "\n", with: " "))_") }
             }
             lines.append("")
         }

@@ -48,6 +48,7 @@ struct ContentView: View {
                 } label: { Label("Ajouter", systemImage: "plus") }
             }
         }
+        .background(Color.clear.sheet(isPresented: $model.showGoals) { GoalsSheet() })
         .navigationTitle(model.periodTitle)
         .tint(Theme.accent)
         .fontDesign(.rounded)

@@ -24,12 +24,19 @@ extension ReportPeriod {
 struct Snapshot {
     var entries: [Entry]
     var series: [Series]
+    var goals: [Goal] = []
 }
 
 @MainActor
 final class AppModel: ObservableObject {
     @Published var entries: [Entry] = []
     @Published var series: [Series] = []
+    @Published var goals: [Goal] = []
+    /// Fenêtre « Objectifs » et brouillon d'objectif à éditer à l'ouverture (ex. depuis une tâche).
+    @Published var showGoals = false
+    @Published var goalDraft: Goal?
+    /// Clé d'une tâche à renommer : la vue Tâches ouvre alors la fenêtre correspondante.
+    @Published var renameRequest: String?
     @Published var day = Date() {
         didSet { calendars.ensureLoaded(around: day) }
     }
@@ -81,6 +88,7 @@ final class AppModel: ObservableObject {
         let loaded = store.load()
         entries = loaded.entries
         series = loaded.series
+        goals = loaded.goals
         if let aside = loaded.quarantinedAt {
             loadWarning = "Le fichier de données était illisible. Il a été conservé tel quel (\(aside.lastPathComponent), dans \(aside.deletingLastPathComponent().path)) et Sillage repart d'une journée vide."
         }
@@ -93,6 +101,22 @@ final class AppModel: ObservableObject {
         runBackups(force: false)
         mirrorToFolder()
         // SILLAGE_OPEN_BACKUP : ouvre la fenêtre de sauvegarde au lancement (captures d'écran de la documentation).
+        // Captures d'écran de la documentation : ouvrent directement la fenêtre voulue.
+        let env = ProcessInfo.processInfo.environment
+        if env["SILLAGE_OPEN_GOALS"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.showGoals = true }
+        }
+        if let key = env["SILLAGE_OPEN_RENAME"] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.renameRequest = key }
+        }
+        if env["SILLAGE_OPEN_SERIES"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                guard let self else { return }
+                if let e = self.entries.filter({ $0.seriesID != nil && $0.start > Date() }).min(by: { $0.start < $1.start }) {
+                    self.editor = EditorTarget(entry: e, isNew: false)
+                }
+            }
+        }
         if ProcessInfo.processInfo.environment["SILLAGE_OPEN_CALENDARS"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.showCalendars = true }
         }
@@ -302,6 +326,56 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Enregistre une occurrence modifiée et applique les changements à celles qui suivent dans sa série.
+    func saveSeries(edited: Entry, original: Entry) {
+        commit {
+            Series.applyToFollowing(original: original, edited: edited, series: &series, entries: &entries)
+            Series.topUp(&series, entries: &entries, now: Date())
+        }
+    }
+
+    // MARK: Tâches : renommer, fusionner
+
+    /// Renomme (ou fusionne dans une autre tâche) toutes les séances réelles d'une tâche. Renvoie le nombre de séances modifiées.
+    @discardableResult
+    func renameTask(key: String, to newTitle: String, category: String? = nil) -> Int {
+        var changed = 0
+        commit {
+            let result = Actions.renameTask(entries, key: key, to: newTitle, category: category)
+            entries = result.entries
+            changed = result.changed
+        }
+        // Les objectifs et la sélection suivent le nouveau nom.
+        let newKey = DayLogic.taskKey(newTitle)
+        if selectedTask == key { selectedTask = newKey }
+        return changed
+    }
+
+    // MARK: Objectifs
+
+    func saveGoal(_ goal: Goal) {
+        commit {
+            if let i = goals.firstIndex(where: { $0.id == goal.id }) { goals[i] = goal } else { goals.append(goal) }
+        }
+    }
+
+    func deleteGoal(_ id: UUID) { commit { goals.removeAll { $0.id == id } } }
+
+    /// Avancement de tous les objectifs pour la période en cours (aujourd'hui, cette semaine, ce mois).
+    func goalProgress() -> [GoalProgress] {
+        Goals.progress(goals, entries: entries, anchor: now, now: now)
+    }
+
+    func goalProgress(forTask key: String) -> [GoalProgress] {
+        goalProgress().filter { $0.goal.taskKey == key }
+    }
+
+    /// Ouvre la fenêtre des objectifs, avec un objectif à créer pour cette tâche.
+    func newGoal(forTask title: String) {
+        goalDraft = Goal(taskKey: DayLogic.taskKey(title), title: title, hours: 10, period: .week)
+        showGoals = true
+    }
+
     func series(of entry: Entry) -> Series? { entry.seriesID.flatMap { id in series.first { $0.id == id } } }
 
     func delete(_ id: UUID) {
@@ -316,7 +390,7 @@ final class AppModel: ObservableObject {
 
     // MARK: Annuler / rétablir
 
-    private var snapshot: Snapshot { Snapshot(entries: entries, series: series) }
+    private var snapshot: Snapshot { Snapshot(entries: entries, series: series, goals: goals) }
 
     /// Applique une modification en mémorisant l'état d'avant, pour pouvoir l'annuler.
     private func commit(_ change: () -> Void) {
@@ -339,6 +413,7 @@ final class AppModel: ObservableObject {
     private func restore(_ state: Snapshot) {
         entries = state.entries
         series = state.series
+        goals = state.goals
         persist()
         refreshHistoryFlags()
     }
@@ -349,7 +424,7 @@ final class AppModel: ObservableObject {
     }
 
     private func persist() {
-        do { try store.save(entries, series: series) } catch { saveError = error.localizedDescription }
+        do { try store.save(entries, series: series, goals: goals) } catch { saveError = error.localizedDescription }
         notifier.reschedule(entries, now: Date())
         runBackups(force: false)
     }
@@ -398,7 +473,7 @@ final class AppModel: ObservableObject {
         if Self.backupFolderEnv == nil { UserDefaults.standard.removeObject(forKey: "backupFolder") }
     }
 
-    func exportFull(to url: URL) throws { try Store.export(entries: entries, series: series, to: url) }
+    func exportFull(to url: URL) throws { try Store.export(entries: entries, series: series, goals: goals, to: url) }
 
     /// CSV de tout l'historique, ou de la période affichée.
     func exportCSV(to url: URL, periodOnly: Bool) throws {
@@ -422,6 +497,7 @@ final class AppModel: ObservableObject {
         commit {
             entries = backup.entries
             series = backup.series
+            goals = backup.goals
         }
         return true
     }
