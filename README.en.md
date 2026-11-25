@@ -28,6 +28,9 @@ Everything stays **on your Mac**: no account, no network, no data sent anywhere.
 | I want to… | I do… |
 |---|---|
 | Start a task now | Left panel: title, category, **Démarrer maintenant** (Start now) |
+| Repeat an appointment (physio every Wednesday, rent every month…) | In the sheet: **Répéter** (Repeat: day, week with chosen weekdays, month, year), “every N”, “until”. Each occurrence stays individually editable, movable and honorable; series are automatically extended one year ahead |
+| Delete a series | Open an occurrence → **Supprimer** (Delete) → “this occurrence only” or “this and following” (what was already lived is kept) |
+| Be warned before an appointment | In the sheet: **Rappel** (Reminder: at start, 5 min, 15 min, 1 h, 1 day before): macOS notification, even with the window closed |
 | Launch a common activity (shower, meal, sleep, commute, break, sport) | One click on a **shortcut** |
 | Switch from one task to the next | “Terminer la tâche en cours” checkbox (on by default) |
 | Stop a running task | ■ button under “En cours” (Running) |

@@ -172,4 +172,101 @@ final class SillageCoreTests: XCTestCase {
         XCTAssertEqual(Actions.nextPlanned([later, late, arrived], now: now)?.title, "plus tard")
         XCTAssertNil(Actions.nextPlanned([past], now: now))
     }
+
+    // MARK: Récurrence et rappels
+
+    /// Calendrier fixe (UTC, semaine commençant le lundi) pour des tests déterministes.
+    var fixed: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        c.firstWeekday = 2
+        return c
+    }
+    func d(_ y: Int, _ m: Int, _ day: Int, _ h: Int = 9, _ min: Int = 0) -> Date {
+        fixed.date(from: DateComponents(year: y, month: m, day: day, hour: h, minute: min))!
+    }
+    func rdv(_ start: Date) -> Entry { Entry(title: "Kiné", category: "Santé", kind: .planned, start: start, end: start.addingTimeInterval(3600)) }
+
+    func testWeeklyOnChosenWeekdays() {
+        // lundi 2 novembre 2026 ; lundis et mercredis (weekday : 2 et 4)
+        let first = rdv(d(2026, 11, 2))
+        let (s, _) = Series.make(from: first, rule: Recurrence(frequency: .weekly, weekdays: [2, 4]), calendar: fixed)
+        let days = s.occurrences(from: d(2026, 11, 3), through: d(2026, 11, 16), calendar: fixed).map { fixed.component(.day, from: $0.start) }
+        XCTAssertEqual(days, [4, 9, 11, 16])
+    }
+
+    func testEveryTwoWeeksAndUntil() {
+        let (s, _) = Series.make(from: rdv(d(2026, 11, 2)), rule: Recurrence(frequency: .weekly, interval: 2, until: d(2026, 12, 14)), calendar: fixed)
+        let days = s.occurrences(from: d(2026, 11, 3), through: d(2027, 1, 31), calendar: fixed).map { fixed.component(.day, from: $0.start) }
+        XCTAssertEqual(days, [16, 30, 14])      // 16 nov, 30 nov, 14 déc, puis plus rien après « jusqu'au »
+    }
+
+    func testMonthlyOn31StaysOnLastDay() {
+        let (s, _) = Series.make(from: rdv(d(2026, 1, 31)), rule: Recurrence(frequency: .monthly), calendar: fixed)
+        let days = s.occurrences(from: d(2026, 2, 1), through: d(2026, 4, 30), calendar: fixed).map { fixed.component(.day, from: $0.start) }
+        XCTAssertEqual(days, [28, 31, 30])      // février, mars, avril
+    }
+
+    func testOccurrencesKeepTimeAndDuration() {
+        let (s, _) = Series.make(from: rdv(d(2026, 11, 2, 14, 30)), rule: Recurrence(frequency: .daily), calendar: fixed)
+        let o = s.occurrences(from: d(2026, 11, 3), through: d(2026, 11, 3), calendar: fixed)[0]
+        XCTAssertEqual(o.start, d(2026, 11, 3, 14, 30)); XCTAssertEqual(o.end, d(2026, 11, 3, 15, 30))
+        XCTAssertEqual(o.seriesID, s.id)
+    }
+
+    func testTopUpDoesNotDuplicateNorRecreateDeleted() {
+        let now = d(2026, 11, 2, 8)
+        let (s, first) = Series.make(from: rdv(d(2026, 11, 2)), rule: Recurrence(frequency: .daily), calendar: fixed)
+        var series = [s]; var entries = [first]
+        Series.topUp(&series, entries: &entries, now: now, horizonDays: 10, calendar: fixed)
+        XCTAssertEqual(entries.count, 11)                                   // jour 0 à jour 10
+        entries.removeAll { $0.start == d(2026, 11, 5) }                    // l'utilisateur supprime une occurrence
+        XCTAssertFalse(Series.topUp(&series, entries: &entries, now: now, horizonDays: 10, calendar: fixed))
+        Series.topUp(&series, entries: &entries, now: d(2026, 11, 5, 8), horizonDays: 10, calendar: fixed)
+        XCTAssertEqual(entries.count, 13)                                   // 10 restants + les 13, 14 et 15 ; le 5 n'est pas recréé
+        XCTAssertFalse(entries.contains { $0.start == d(2026, 11, 5) })
+    }
+
+    func testEndSeriesKeepsLivedOccurrences() {
+        let now = d(2026, 11, 2, 8)
+        let (s, first) = Series.make(from: rdv(d(2026, 11, 2)), rule: Recurrence(frequency: .daily), calendar: fixed)
+        var series = [s]; var entries = [first]
+        Series.topUp(&series, entries: &entries, now: now, horizonDays: 6, calendar: fixed)
+        let done = entries.first { $0.start == d(2026, 11, 5) }!
+        entries = Actions.arrive(entries, at: done.id, now: d(2026, 11, 5, 9), stopRunning: false)
+        let cutoff = entries.first { $0.start == d(2026, 11, 4) }!
+        Series.end(s.id, from: cutoff.start, series: &series, entries: &entries, calendar: fixed)
+        let planned = entries.filter { $0.kind == .planned }.map { fixed.component(.day, from: $0.start) }.sorted()
+        XCTAssertEqual(planned, [2, 3, 5])                                  // le 5 est resté : déjà vécu
+        XCTAssertEqual(series[0].rule.until, d(2026, 11, 3, 0))
+        Series.topUp(&series, entries: &entries, now: d(2026, 11, 20), horizonDays: 10, calendar: fixed)
+        XCTAssertEqual(entries.filter { $0.kind == .planned }.count, 3)     // rien de plus généré
+        Series.end(s.id, from: first.start, series: &series, entries: &entries, calendar: fixed)
+        XCTAssertTrue(series.isEmpty)                                       // début atteint : série supprimée
+    }
+
+    func testReminders() {
+        var a = rdv(d(2026, 11, 10, 10)); a.reminderMinutes = 15
+        var b = rdv(d(2026, 11, 9, 10)); b.reminderMinutes = 0
+        var c = rdv(d(2026, 11, 8, 10)); c.reminderMinutes = 10                  // déjà passé
+        let none = rdv(d(2026, 11, 11, 10))                                     // sans rappel
+        var honored = rdv(d(2026, 11, 12, 10)); honored.reminderMinutes = 5
+        let arrival = Entry(title: "x", category: "Autre", kind: .actual, start: d(2026, 11, 12, 10), plannedID: honored.id)
+        let up = Reminders.upcoming([a, b, c, none, honored, arrival], now: d(2026, 11, 8, 12))
+        XCTAssertEqual(up.map(\.entry.id), [b.id, a.id])                         // triés ; passés, sans rappel, honorés exclus
+        XCTAssertEqual(up[1].fire, d(2026, 11, 10, 9, 45))
+        XCTAssertEqual(Reminders.upcoming([a, b], now: d(2026, 11, 1), limit: 1).count, 1)
+    }
+
+    func testStoreKeepsSeriesAndOldFilesStillLoad() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("sillage-\(UUID()).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let (s, first) = Series.make(from: rdv(d(2026, 11, 2)), rule: Recurrence(frequency: .weekly, weekdays: [2]), calendar: fixed)
+        let store = Store(url: url)
+        try store.save([first], series: [s])
+        let r = store.load()
+        XCTAssertEqual(r.series, [s]); XCTAssertEqual(r.entries, [first])
+        try store.save([first])                                                  // ancien appel, sans séries
+        XCTAssertEqual(store.load().series, [])
+    }
 }

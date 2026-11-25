@@ -16,9 +16,13 @@ public struct Entry: Codable, Identifiable, Equatable, Sendable {
     public var end: Date?
     /// Pour une entrée réelle née d'un « J'y suis » : le rendez-vous prévu correspondant.
     public var plannedID: UUID?
+    /// Si le rendez-vous fait partie d'une série répétée.
+    public var seriesID: UUID?
+    /// Rappel (rendez-vous prévus) : minutes avant le début ; 0 = à l'heure ; `nil` = aucun rappel.
+    public var reminderMinutes: Int?
 
     public init(id: UUID = UUID(), title: String, category: String, kind: EntryKind, start: Date, end: Date? = nil,
-                plannedID: UUID? = nil) {
+                plannedID: UUID? = nil, seriesID: UUID? = nil, reminderMinutes: Int? = nil) {
         self.id = id
         self.title = title
         self.category = category
@@ -26,6 +30,8 @@ public struct Entry: Codable, Identifiable, Equatable, Sendable {
         self.start = start
         self.end = end
         self.plannedID = plannedID
+        self.seriesID = seriesID
+        self.reminderMinutes = reminderMinutes
     }
 
     public var isRunning: Bool { end == nil }

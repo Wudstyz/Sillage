@@ -5,6 +5,7 @@ import SillageCore
 @MainActor
 final class AppModel: ObservableObject {
     @Published var entries: [Entry] = []
+    @Published var series: [Series] = []
     @Published var day = Date()
     @Published var now = Date()
     /// Entrée en cours d'édition dans la feuille modale (nouvelle ou existante).
@@ -15,17 +16,26 @@ final class AppModel: ObservableObject {
 
     private let store: Store
     private var timer: Timer?
+    private let notifier = Notifier()
 
     init(store: Store = .default) {
         self.store = store
         let loaded = store.load()
         entries = loaded.entries
+        series = loaded.series
         if let aside = loaded.quarantinedAt {
             loadWarning = "Le fichier de données était illisible. Il a été conservé tel quel (\(aside.lastPathComponent), dans \(aside.deletingLastPathComponent().path)) et Sillage repart d'une journée vide."
         }
+        if Series.topUp(&series, entries: &entries, now: Date()) { persist() } else { notifier.reschedule(entries, now: Date()) }
         timer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.now = Date() }
+            Task { @MainActor in self?.tick() }
         }
+    }
+
+    private func tick() {
+        now = Date()
+        // Prolonge les séries au fil du temps (un an d'avance) et reprogramme les rappels.
+        if Series.topUp(&series, entries: &entries, now: now) { persist() }
     }
 
     struct EditorTarget: Identifiable {
@@ -92,17 +102,35 @@ final class AppModel: ObservableObject {
                                          end: base.addingTimeInterval(3600)), isNew: true)
     }
 
-    func save(_ entry: Entry) {
-        if let i = entries.firstIndex(where: { $0.id == entry.id }) { entries[i] = entry } else { entries.append(entry) }
+    func save(_ entry: Entry, recurrence: Recurrence? = nil) {
+        var e = entry
+        if let rule = recurrence, e.kind == .planned, e.seriesID == nil {
+            // L'entrée devient la première occurrence ; les suivantes sont générées à l'avance.
+            let made = Series.make(from: e, rule: rule)
+            e = made.first
+            series.append(made.series)
+        }
+        if let i = entries.firstIndex(where: { $0.id == e.id }) { entries[i] = e } else { entries.append(e) }
+        Series.topUp(&series, entries: &entries, now: Date())
         persist()
     }
+
+    func series(of entry: Entry) -> Series? { entry.seriesID.flatMap { id in series.first { $0.id == id } } }
 
     func delete(_ id: UUID) {
         entries.removeAll { $0.id == id }
         persist()
     }
 
+    /// Supprime ce rendez-vous et tous les suivants de sa série (les occurrences déjà vécues restent).
+    func deleteFollowing(_ entry: Entry) {
+        guard let id = entry.seriesID else { return delete(entry.id) }
+        Series.end(id, from: entry.start, series: &series, entries: &entries)
+        persist()
+    }
+
     private func persist() {
-        do { try store.save(entries) } catch { saveError = error.localizedDescription }
+        do { try store.save(entries, series: series) } catch { saveError = error.localizedDescription }
+        notifier.reschedule(entries, now: Date())
     }
 }

@@ -28,6 +28,9 @@ Tout reste **sur votre Mac** : aucun compte, aucun réseau, aucune donnée envoy
 | Je veux… | Je fais… |
 |---|---|
 | Commencer une tâche maintenant | Panneau de gauche : titre, catégorie, **Démarrer maintenant** |
+| Répéter un rendez-vous (kiné chaque mercredi, loyer chaque mois…) | Dans la fiche : **Répéter** (jour, semaine avec choix des jours, mois, année), « toutes les N », « jusqu'au ». Chaque occurrence reste modifiable, déplaçable et honorable séparément ; les séries sont prolongées automatiquement un an à l'avance |
+| Supprimer une série | Fiche d'une occurrence → **Supprimer** → « Cette occurrence seulement » ou « Celle-ci et les suivantes » (ce qui a déjà été vécu reste) |
+| Être prévenu avant un rendez-vous | Dans la fiche : **Rappel** (à l'heure, 5 min, 15 min, 1 h, 1 jour avant) : notification macOS, même fenêtre fermée |
 | Lancer une activité courante (douche, repas, sommeil, trajet, pause, sport) | Un clic sur un **raccourci** |
 | Enchaîner deux tâches | Case « Terminer la tâche en cours » (cochée par défaut) |
 | Terminer une tâche en cours | Bouton ■ dans « En cours » |

@@ -13,7 +13,7 @@ public struct Store {
         return Store(url: base.appendingPathComponent("Sillage/data.json"))
     }
 
-    private struct File: Codable { var entries: [Entry] }
+    private struct File: Codable { var entries: [Entry]; var series: [Series]? }
 
     private static var decoder: JSONDecoder {
         let d = JSONDecoder()
@@ -30,6 +30,7 @@ public struct Store {
 
     public struct LoadResult: Equatable {
         public var entries: [Entry]
+        public var series: [Series] = []
         /// Si le fichier était illisible : l'endroit où il a été mis de côté (il n'est jamais écrasé).
         public var quarantinedAt: URL?
     }
@@ -39,7 +40,7 @@ public struct Store {
     public func load() -> LoadResult {
         guard let data = try? Data(contentsOf: url) else { return LoadResult(entries: [], quarantinedAt: nil) }
         if let file = try? Self.decoder.decode(File.self, from: data) {
-            return LoadResult(entries: file.entries, quarantinedAt: nil)
+            return LoadResult(entries: file.entries, series: file.series ?? [], quarantinedAt: nil)
         }
         let stamp = Self.stamp(Date(), format: "yyyy-MM-dd-HHmmss")
         let aside = url.deletingLastPathComponent().appendingPathComponent("data.corrompu-\(stamp).json")
@@ -52,10 +53,10 @@ public struct Store {
 
     /// Écriture atomique (un plantage en cours d'écriture ne corrompt pas le fichier),
     /// précédée d'une sauvegarde quotidienne.
-    public func save(_ entries: [Entry]) throws {
+    public func save(_ entries: [Entry], series: [Series] = []) throws {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         backupIfNeeded()
-        try Self.encoder.encode(File(entries: entries)).write(to: url, options: .atomic)
+        try Self.encoder.encode(File(entries: entries, series: series)).write(to: url, options: .atomic)
     }
 
     public var backupsDirectory: URL { url.deletingLastPathComponent().appendingPathComponent("Sauvegardes") }
