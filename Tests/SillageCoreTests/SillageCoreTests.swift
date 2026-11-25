@@ -130,4 +130,33 @@ final class SillageCoreTests: XCTestCase {
         XCTAssertEqual(r.entries.count, 1)
         XCTAssertNil(r.entries[0].plannedID)
     }
+
+    func testSnapAndRange() {
+        XCTAssertEqual(Manipulation.snap(at(9, 7)), at(9, 0))
+        XCTAssertEqual(Manipulation.snap(at(9, 8)), at(9, 15))
+        let r = Manipulation.range(at(11, 40), at(10, 2))           // sens inverse
+        XCTAssertEqual(r.start, at(10, 0)); XCTAssertEqual(r.end, at(11, 45))
+        let tiny = Manipulation.range(at(10, 1), at(10, 3))         // un simple clic : un pas minimum
+        XCTAssertEqual(tiny.end.timeIntervalSince(tiny.start), 900)
+    }
+
+    func testMoveKeepsDurationAndStaysInDay() {
+        let dayBounds = DateInterval(start: day, end: day.addingTimeInterval(86400))
+        let e = entry("a", at(9), at(10, 30))
+        let m = Manipulation.moved(e, by: 3600 + 400, within: dayBounds)        // +1 h 6 min → aimanté
+        XCTAssertEqual(m.start, at(10, 0)); XCTAssertEqual(m.end, at(11, 30))
+        let top = Manipulation.moved(e, by: -20 * 3600, within: dayBounds)       // trop haut : bloqué à minuit
+        XCTAssertEqual(top.start, at(0)); XCTAssertEqual(top.end, at(1, 30))
+        let bottom = Manipulation.moved(e, by: 20 * 3600, within: dayBounds)
+        XCTAssertEqual(bottom.end, at(24))
+        let run = entry("run", at(9), nil)
+        XCTAssertEqual(Manipulation.moved(run, by: 3600), run)                   // en cours : intact
+    }
+
+    func testResize() {
+        let e = entry("a", at(9), at(10))
+        XCTAssertEqual(Manipulation.resized(e, by: 1800).end, at(10, 30))
+        XCTAssertEqual(Manipulation.resized(e, by: -7200).end, at(9, 15))       // durée minimale d'un pas
+        XCTAssertNil(Manipulation.resized(entry("run", at(9), nil), by: 1800).end)  // en cours : intact
+    }
 }

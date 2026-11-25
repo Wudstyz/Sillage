@@ -34,6 +34,9 @@ Everything stays **on your Mac**: no account, no network, no data sent anywhere.
 | Tell I've arrived at an appointment | Right-click the appointment → **J'y suis** (“I'm here”): the real task starts and the timeline shows how early or late you were |
 | Add an appointment | **+ → Rendez-vous prévu** (⌘N) |
 | Log something already done (shower, lunch…) | **+ → Activité passée** (⇧⌘N) |
+| Create a range directly | **Drag** in an empty part of the timeline (Prévu or Réel column), snapped to 15 minutes |
+| Move an activity | **Drag** the block |
+| Change its duration | **Stretch** the bottom edge of the block |
 | Fix a forgotten time | Click the block on the timeline |
 | Change day | ‹ › or ⌘← ⌘→; today: ⌘T |
 

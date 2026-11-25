@@ -34,6 +34,9 @@ Tout reste **sur votre Mac** : aucun compte, aucun réseau, aucune donnée envoy
 | Signaler que je suis arrivé à un rendez-vous | Clic droit sur le rendez-vous → **J'y suis** : la tâche réelle démarre, et la frise affiche le retard ou l'avance |
 | Ajouter un rendez-vous | **+ → Rendez-vous prévu** (⌘N) |
 | Noter une activité déjà passée (douche, repas…) | **+ → Activité passée** (⇧⌘N) |
+| Créer une plage directement | **Glisser** dans le vide de la frise (colonne Prévu ou Réel), alignée au quart d'heure |
+| Déplacer une activité | **Glisser** le bloc |
+| Changer sa durée | **Étirer** le bord bas du bloc |
 | Corriger une heure oubliée | Clic sur le bloc dans la frise |
 | Changer de jour | ‹ › ou ⌘← ⌘→ ; aujourd'hui : ⌘T |
 
