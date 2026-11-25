@@ -1,11 +1,11 @@
 import SwiftUI
 import SillageCore
 
-/// Frise de la journée : colonne « Prévu » (rendez-vous) et colonne « Réel » (ce qui s'est passé).
+/// Frise de la journée : voie « Prévu » (rendez-vous) et voie « Réel » (ce qui s'est passé).
 struct TimelineView: View {
     @EnvironmentObject var model: AppModel
     private let hourHeight: CGFloat = 60
-    private let gutter: CGFloat = 52
+    private let gutter: CGFloat = 56
     /// Gestes en cours (avant relâchement) : décalage en secondes, pour un aperçu fidèle au résultat final.
     @State private var liveMove: [UUID: TimeInterval] = [:]
     @State private var liveResize: [UUID: TimeInterval] = [:]
@@ -19,16 +19,20 @@ struct TimelineView: View {
     var body: some View {
         VStack(spacing: 0) {
             headers
-            Divider()
             scrollArea
         }
-        .background(Color(nsColor: .textBackgroundColor))
+        .background(Theme.background)
     }
 
     private var scrollArea: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 ZStack(alignment: .topLeading) {
+                    GeometryReader { geo in
+                        let colWidth = (geo.size.width - gutter - 16) / 2
+                        laneBackground(.planned, x: gutter, width: colWidth)
+                        laneBackground(.actual, x: gutter + colWidth + 8, width: colWidth)
+                    }
                     grid
                     GeometryReader { geo in
                         let colWidth = (geo.size.width - gutter - 16) / 2
@@ -38,7 +42,7 @@ struct TimelineView: View {
                     }
                 }
                 .frame(height: hourHeight * 24)
-                .padding(.top, 10)
+                .padding(.vertical, 10)
             }
             .onAppear { scroll(proxy) }
             .onChange(of: model.day) { _ in scroll(proxy) }
@@ -55,34 +59,56 @@ struct TimelineView: View {
         DispatchQueue.main.async { proxy.scrollTo("h\(h)", anchor: .top) }
     }
 
+    // MARK: En-têtes, fond et grille
+
     private var headers: some View {
         GeometryReader { geo in
             let colWidth = (geo.size.width - gutter - 16) / 2
             HStack(spacing: 8) {
                 Spacer().frame(width: gutter - 8)
-                Text("Prévu").frame(width: colWidth)
-                Text("Réel").frame(width: colWidth)
+                laneTitle("Prévu", "calendar", color: Theme.muted).frame(width: colWidth)
+                laneTitle("Réel", "checkmark.circle.fill", color: Theme.accent).frame(width: colWidth)
             }
-            .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            .frame(maxHeight: .infinity)
         }
-        .frame(height: 28)
+        .frame(height: 40)
+        .background(Theme.background)
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
+    }
+
+    private func laneTitle(_ text: String, _ symbol: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: symbol).font(.system(size: 11, weight: .bold))
+            Text(text).tracking(1.2).textCase(.uppercase)
+        }
+        .font(Theme.rounded(11, .bold)).foregroundStyle(color)
+    }
+
+    private func laneBackground(_ kind: EntryKind, x: CGFloat, width: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .fill(kind == .actual ? Color.white : Theme.ink.opacity(0.035))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.line, lineWidth: kind == .actual ? 1 : 0))
+            .frame(width: width, height: hourHeight * 24)
+            .offset(x: x)
     }
 
     private var grid: some View {
         VStack(spacing: 0) {
             ForEach(0..<24, id: \.self) { h in
-                HStack(alignment: .top, spacing: 6) {
+                HStack(alignment: .top, spacing: 8) {
                     Text(String(format: "%02d:00", h))
-                        .font(.caption2).monospacedDigit().foregroundStyle(.secondary)
-                        .frame(width: gutter - 6, alignment: .trailing)
-                        .offset(y: -6)
-                    Rectangle().fill(Color.secondary.opacity(0.18)).frame(height: 1)
+                        .font(Theme.rounded(11, .medium)).monospacedDigit().foregroundStyle(Theme.muted)
+                        .frame(width: gutter - 8, alignment: .trailing)
+                        .offset(y: -7)
+                    Rectangle().fill(Theme.line).frame(height: 1)
                 }
                 .frame(height: hourHeight, alignment: .top)
                 .id("h\(h)")
             }
         }
     }
+
+    // MARK: Colonnes et blocs
 
     private func column(_ kind: EntryKind, x: CGFloat, width: CGFloat) -> some View {
         let list = DayLogic.entries(model.entries, kind: kind, on: model.day, now: model.now)
@@ -115,30 +141,37 @@ struct TimelineView: View {
         let s = max(e.start, dayStart)
         let f = min(e.effectiveEnd(now: model.now), dayEnd)
         let y = CGFloat(s.timeIntervalSince(dayStart) / 3600) * hourHeight
-        let h = max(22, CGFloat(f.timeIntervalSince(s) / 3600) * hourHeight - 2)
+        let h = max(24, CGFloat(f.timeIntervalSince(s) / 3600) * hourHeight - 3)
         let w = width / CGFloat(p.lanes)
-        let color = Theme.color(for: e.category)
         let planned = e.kind == .planned
+        let ink: Color = planned ? Theme.ink(for: e.category) : .white
+        let live = liveMove[e.id] != nil || liveResize[e.id] != nil
 
-        return VStack(alignment: .leading, spacing: 1) {
-            Text(e.title).font(.callout.weight(.semibold)).lineLimit(1)
-            if h > 38 {
-                Text(detail(e)).font(.caption).opacity(0.85).lineLimit(1)
+        return VStack(alignment: .leading, spacing: 2) {
+            Text(e.title).font(Theme.rounded(13, .semibold)).lineLimit(1)
+            if h > 40 {
+                Text(detail(e)).font(Theme.rounded(11, .medium)).opacity(0.85).lineLimit(1)
             }
         }
-        .foregroundStyle(planned ? color : .white)
-        .padding(.horizontal, 8).padding(.vertical, 3)
-        .frame(width: w - 3, height: h, alignment: .topLeading)
-        .background(RoundedRectangle(cornerRadius: 8).fill(planned ? color.opacity(0.15) : color))
-        .overlay(RoundedRectangle(cornerRadius: 8)
-            .strokeBorder(color, style: StrokeStyle(lineWidth: planned ? 1.5 : 0, dash: planned ? [5, 3] : [])))
+        .foregroundStyle(ink)
+        .padding(.leading, planned ? 12 : 9).padding(.trailing, 8).padding(.vertical, 5)
+        .frame(width: w - 6, height: h, alignment: .topLeading)
+        .entryBlock(category: e.category, planned: planned)
         .overlay(alignment: .topTrailing) {
             if e.isRunning {
-                Image(systemName: "play.circle.fill").padding(4).foregroundStyle(.white.opacity(0.9))
+                HStack(spacing: 4) {
+                    PulsingDot(color: .white)
+                    Text("en cours").font(Theme.rounded(10, .bold)).foregroundStyle(.white)
+                }
+                .padding(.horizontal, 6).padding(.vertical, 3)
+                .background(Capsule().fill(Color.black.opacity(0.18)))
+                .padding(5)
             } else if planned && model.isArrived(e) {
-                Image(systemName: "checkmark.circle.fill").padding(4).foregroundStyle(color)
+                Image(systemName: "checkmark.circle.fill").padding(5).foregroundStyle(Theme.color(for: e.category))
             }
         }
+        .scaleEffect(live ? 1.012 : 1)
+        .shadow(color: live ? Color.black.opacity(0.18) : .clear, radius: 8, y: 3)
         .contentShape(Rectangle())
         .contextMenu {
             if planned && !model.isArrived(e) {
@@ -163,14 +196,18 @@ struct TimelineView: View {
         .overlay(alignment: .bottom) {
             // Poignée du bas : étirer la fin.
             if !original.isRunning {
-                Rectangle().fill(Color.clear).frame(height: 8).contentShape(Rectangle())
-                    .onHover { inside in (inside ? NSCursor.resizeUpDown : NSCursor.arrow).set() }
-                    .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .global)
-                        .onChanged { v in liveResize[original.id] = seconds(v.translation.height) }
-                        .onEnded { v in
-                            liveResize[original.id] = nil
-                            model.save(Manipulation.resized(original, by: seconds(v.translation.height), within: dayBounds))
-                        })
+                ZStack {
+                    Rectangle().fill(Color.clear)
+                    if h > 34 { Capsule().fill(ink.opacity(0.45)).frame(width: 24, height: 3) }
+                }
+                .frame(height: 10).contentShape(Rectangle())
+                .onHover { inside in (inside ? NSCursor.resizeUpDown : NSCursor.arrow).set() }
+                .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .global)
+                    .onChanged { v in liveResize[original.id] = seconds(v.translation.height) }
+                    .onEnded { v in
+                        liveResize[original.id] = nil
+                        model.save(Manipulation.resized(original, by: seconds(v.translation.height), within: dayBounds))
+                    })
             }
         }
         .accessibilityElement(children: .ignore)
@@ -178,7 +215,8 @@ struct TimelineView: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { model.editor = AppModel.EditorTarget(entry: original, isNew: false) }
         .accessibilityAction(named: "J'y suis") { if planned { model.arrive(at: e) } }
-        .offset(x: CGFloat(p.lane) * w, y: y)
+        .offset(x: CGFloat(p.lane) * w + 3, y: y + 1)
+        .animation(.easeOut(duration: 0.12), value: live)
         .help("\(e.title) · \(detail(e)) · \(e.category)")
     }
 
@@ -187,14 +225,14 @@ struct TimelineView: View {
         let top = CGFloat(r.start.timeIntervalSince(dayStart) / 3600) * hourHeight
         let h = CGFloat(r.end.timeIntervalSince(r.start) / 3600) * hourHeight
         let label = "\(r.start.formatted(date: .omitted, time: .shortened)) – \(r.end.formatted(date: .omitted, time: .shortened))"
-        return RoundedRectangle(cornerRadius: 8)
-            .fill(Color.accentColor.opacity(0.18))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.accentColor, lineWidth: 1.5))
+        return RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(Theme.accent.opacity(0.14))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Theme.accent, lineWidth: 1.5))
             .overlay(alignment: .topLeading) {
-                Text(label).font(.caption.weight(.semibold)).foregroundStyle(Color.accentColor).padding(6)
+                Text(label).font(Theme.rounded(12, .bold)).foregroundStyle(Theme.accent).padding(8)
             }
-            .frame(width: width - 3, height: h)
-            .offset(y: top)
+            .frame(width: width - 6, height: h)
+            .offset(x: 3, y: top)
             .allowsHitTesting(false)
     }
 
@@ -212,12 +250,15 @@ struct TimelineView: View {
 
     private func nowLine(width: CGFloat) -> some View {
         let y = CGFloat(model.now.timeIntervalSince(dayStart) / 3600) * hourHeight
-        return HStack(spacing: 0) {
-            Spacer().frame(width: gutter - 4)
-            Circle().fill(.red).frame(width: 8, height: 8)
-            Rectangle().fill(.red).frame(height: 1.5)
+        return ZStack(alignment: .leading) {
+            Rectangle().fill(Theme.accent).frame(height: 2).padding(.leading, gutter - 6)
+            Text(model.now.formatted(date: .omitted, time: .shortened))
+                .font(Theme.rounded(10, .bold)).monospacedDigit().foregroundStyle(.white)
+                .padding(.horizontal, 6).padding(.vertical, 2)
+                .background(Capsule().fill(Theme.accentGradient))
+                .frame(width: gutter - 2, alignment: .trailing)
         }
-        .offset(y: y - 4)
+        .offset(y: y - 8)
         .allowsHitTesting(false)
     }
 }

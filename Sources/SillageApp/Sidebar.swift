@@ -8,91 +8,182 @@ struct Sidebar: View {
     @AppStorage("stopRunningOnStart") private var stopRunning = true
 
     var body: some View {
-        List {
-            Section("Je commence") {
-                TextField("Que faites-vous ?", text: $title)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit(begin)
-                Picker("Catégorie", selection: $category) {
-                    ForEach(Categories.all, id: \.self) { c in
-                        Label(c, systemImage: "circle.fill").foregroundStyle(Theme.color(for: c)).tag(c)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                brand
+                nowSection
+                startSection
+                shortcutsSection
+                bilanSection
+            }
+            .padding(16)
+        }
+        .background(Theme.panel)
+    }
+
+    // MARK: Marque
+
+    private var brand: some View {
+        HStack(spacing: 10) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable().interpolation(.high).frame(width: 34, height: 34)
+            Text("Sillage").font(Theme.rounded(22, .bold)).foregroundStyle(Theme.ink)
+        }
+    }
+
+    // MARK: En cours
+
+    private var nowSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("En cours").sectionLabel()
+            if model.running.isEmpty {
+                HStack(spacing: 10) {
+                    Image(systemName: "moon.zzz").font(.system(size: 18)).foregroundStyle(Theme.muted)
+                    Text("Rien en cours.\nDémarrez une tâche pour suivre votre journée.")
+                        .font(Theme.rounded(12)).foregroundStyle(Theme.muted)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .card(padding: 12)
+            }
+            ForEach(model.running) { e in runningCard(e) }
+        }
+    }
+
+    private func runningCard(_ e: Entry) -> some View {
+        let color = Theme.color(for: e.category)
+        let forgotten = DayLogic.isLikelyForgotten(e, now: model.now)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                PulsingDot(color: color)
+                Text(e.title).font(Theme.rounded(15, .semibold)).foregroundStyle(Theme.ink).lineLimit(1)
+                Spacer()
+                Button { model.stop(e.id) } label: { Image(systemName: "stop.fill").font(.system(size: 11)) }
+                    .buttonStyle(StopButtonStyle()).help("Terminer maintenant")
+            }
+            Text(clockString(model.now.timeIntervalSince(e.start)))
+                .font(.system(size: 34, weight: .bold, design: .rounded)).monospacedDigit().foregroundStyle(Theme.ink)
+            Text("depuis \(e.start.formatted(date: .omitted, time: .shortened)) · \(e.category)")
+                .font(Theme.rounded(12)).foregroundStyle(Theme.muted)
+            if forgotten {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("Oubliée ? En cours depuis \(DayLogic.formatDuration(model.now.timeIntervalSince(e.start))).",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .font(Theme.rounded(12, .medium)).foregroundStyle(Theme.warning)
+                    Button("Indiquer l'heure de fin…") { model.fixEnd(of: e) }.controlSize(.small)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card(padding: 12)
+        .overlay(alignment: .leading) {
+            Capsule().fill(color).frame(width: 4).padding(.vertical, 12).padding(.leading, 5)
+        }
+    }
+
+    // MARK: Démarrer
+
+    private var startSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Je commence").sectionLabel()
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "pencil.line").foregroundStyle(Theme.muted)
+                    TextField("Que faites-vous ?", text: $title).textFieldStyle(.plain)
+                        .font(Theme.rounded(14)).onSubmit(begin)
+                }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.background))
+                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Theme.line))
+
+                Menu {
+                    ForEach(Categories.all, id: \.self) { c in Button(c) { category = c } }
+                } label: {
+                    HStack(spacing: 8) {
+                        Circle().fill(Theme.color(for: category)).frame(width: 10, height: 10)
+                        Text(category).font(Theme.rounded(13, .medium))
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down").font(.system(size: 9)).foregroundStyle(Theme.muted)
                     }
+                    .padding(.horizontal, 10).padding(.vertical, 7)
+                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.color(for: category).opacity(0.12)))
                 }
+                .buttonStyle(.plain).menuIndicator(.hidden)
+
                 if !model.running.isEmpty {
-                    Toggle("Terminer la tâche en cours", isOn: $stopRunning)
-                        .help("Passer d'une tâche à l'autre : la précédente s'arrête à l'instant où la nouvelle commence.")
+                    Toggle(isOn: $stopRunning) {
+                        Text("Terminer la tâche en cours").font(Theme.rounded(12)).foregroundStyle(Theme.muted)
+                    }
+                    .toggleStyle(.checkbox)
+                    .help("Passer d'une tâche à l'autre : la précédente s'arrête à l'instant où la nouvelle commence.")
                 }
+
                 Button(action: begin) {
                     Label("Démarrer maintenant", systemImage: "play.fill").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(AccentButtonStyle())
                 .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
             }
+            .card()
+        }
+    }
 
-            Section("Raccourcis") {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    ForEach(Preset.defaults, id: \.title) { p in
-                        Button {
-                            model.start(title: p.title, category: p.category)
-                            model.day = Date()
-                        } label: {
-                            Label(p.title, systemImage: p.symbol).frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(Theme.color(for: p.category))
-                        .help("Démarrer « \(p.title) » maintenant")
-                    }
-                }
-                .padding(.vertical, 2)
-            }
+    // MARK: Raccourcis
 
-            Section("En cours") {
-                if model.running.isEmpty {
-                    Text("Rien en cours.").foregroundStyle(.secondary)
-                }
-                ForEach(model.running) { e in
-                    let forgotten = DayLogic.isLikelyForgotten(e, now: model.now)
-                    VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Circle().fill(Theme.color(for: e.category)).frame(width: 10, height: 10)
-                        VStack(alignment: .leading) {
-                            Text(e.title).lineLimit(1)
-                            Text("depuis \(e.start.formatted(date: .omitted, time: .shortened)) · \(DayLogic.formatDuration(model.now.timeIntervalSince(e.start)))")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button { model.stop(e.id) } label: { Image(systemName: "stop.fill") }
-                            .buttonStyle(.borderless).help("Terminer maintenant")
+    private var shortcutsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Raccourcis").sectionLabel()
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible())], spacing: 8) {
+                ForEach(Preset.defaults, id: \.title) { p in
+                    Button {
+                        model.start(title: p.title, category: p.category)
+                        model.day = Date()
+                    } label: {
+                        Label(p.title, systemImage: p.symbol).frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    if forgotten {
-                        Label("En cours depuis \(DayLogic.formatDuration(model.now.timeIntervalSince(e.start))) : oubliée ?",
-                              systemImage: "exclamationmark.triangle.fill")
-                            .font(.caption).foregroundStyle(.orange)
-                        Button("Indiquer l'heure de fin…") { model.fixEnd(of: e) }
-                            .controlSize(.small)
-                    }
-                    }
-                }
-            }
-
-            Section(model.periodBilanTitle) {
-                let totals = model.periodTotals()
-                if totals.isEmpty { Text("Aucune activité enregistrée.").foregroundStyle(.secondary) }
-                ForEach(totals, id: \.category) { t in
-                    HStack {
-                        Circle().fill(Theme.color(for: t.category)).frame(width: 10, height: 10)
-                        Text(t.category)
-                        Spacer()
-                        Text(DayLogic.formatDuration(t.duration)).monospacedDigit().foregroundStyle(.secondary)
-                    }
+                    .buttonStyle(ChipButtonStyle(category: p.category))
+                    .help("Démarrer « \(p.title) » maintenant")
                 }
             }
         }
     }
 
+    // MARK: Bilan
+
+    private var bilanSection: some View {
+        let totals = model.periodTotals()
+        let maxValue = totals.map(\.duration).max() ?? 1
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(model.periodBilanTitle).sectionLabel()
+            VStack(alignment: .leading, spacing: 12) {
+                if totals.isEmpty {
+                    Text("Aucune activité enregistrée.").font(Theme.rounded(12)).foregroundStyle(Theme.muted)
+                }
+                ForEach(totals, id: \.category) { t in
+                    VStack(spacing: 5) {
+                        HStack {
+                            Text(t.category).font(Theme.rounded(13, .medium)).foregroundStyle(Theme.ink)
+                            Spacer()
+                            Text(DayLogic.formatDuration(t.duration)).font(Theme.rounded(13, .semibold))
+                                .monospacedDigit().foregroundStyle(Theme.ink)
+                        }
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(Theme.color(for: t.category).opacity(0.14))
+                                Capsule().fill(Theme.color(for: t.category))
+                                    .frame(width: max(6, geo.size.width * t.duration / maxValue))
+                            }
+                        }
+                        .frame(height: 6)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .card()
+        }
+    }
+
     private func begin() {
-        model.start(title: title, category: category, stopRunning: stopRunning)
+        model.start(title: title, category: category)
         title = ""
-        model.day = Date()
     }
 }

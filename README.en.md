@@ -12,6 +12,10 @@
 
 <img src="docs/screenshots/01-journee.png" width="760" alt="Sillage: a day timeline, planned on the left, actual on the right">
 
+<br>
+
+<img src="docs/screenshots/02-semaine.png" width="374" alt="Week view"> <img src="docs/screenshots/03-mois.png" width="374" alt="Month view">
+
 </div>
 
 Sillage is a free, open-source Mac app that combines a **calendar** with a **log of your day**.

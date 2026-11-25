@@ -12,6 +12,10 @@
 
 <img src="docs/screenshots/01-journee.png" width="760" alt="Sillage : la frise d'une journée, prévu à gauche, réel à droite">
 
+<br>
+
+<img src="docs/screenshots/02-semaine.png" width="374" alt="Vue semaine"> <img src="docs/screenshots/03-mois.png" width="374" alt="Vue mois">
+
 </div>
 
 Sillage est une app Mac gratuite et libre qui réunit un **calendrier** et un **journal de bord de la journée**.

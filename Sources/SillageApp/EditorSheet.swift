@@ -31,8 +31,12 @@ struct EditorSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(target.isNew ? (planned ? "Nouveau rendez-vous" : "Activité passée")
-                              : (planned ? "Rendez-vous" : "Activité")).font(.title3.weight(.semibold))
+            HStack(spacing: 10) {
+                Circle().fill(Theme.color(for: entry.category)).frame(width: 14, height: 14)
+                Text(target.isNew ? (planned ? "Nouveau rendez-vous" : "Activité passée")
+                                  : (planned ? "Rendez-vous" : "Activité"))
+                    .font(Theme.rounded(20, .bold)).foregroundStyle(Theme.ink)
+            }
             Form {
                 TextField("Titre", text: $entry.title)
                 Picker("Catégorie", selection: $entry.category) {
@@ -61,11 +65,15 @@ struct EditorSheet: View {
                 }
                 Spacer()
                 Button("Annuler") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Enregistrer", action: save).keyboardShortcut(.defaultAction).disabled(!valid)
+                Button("Enregistrer", action: save).buttonStyle(AccentButtonStyle())
+                    .keyboardShortcut(.defaultAction).disabled(!valid)
             }
         }
-        .padding(20)
-        .frame(width: 440)
+        .padding(22)
+        .frame(width: 460)
+        .background(Theme.background)
+        .tint(Theme.accent)
+        .fontDesign(.rounded)
     }
 
     // MARK: Répétition

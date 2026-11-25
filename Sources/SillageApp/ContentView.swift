@@ -3,6 +3,7 @@ import SillageCore
 
 struct ContentView: View {
     @EnvironmentObject var model: AppModel
+    @State private var showCalendar = false
 
     var body: some View {
         NavigationSplitView {
@@ -29,7 +30,12 @@ struct ContentView: View {
                 }
                 .pickerStyle(.segmented)
                 .help("Jour (⌘1) · Semaine (⌘2) · Mois (⌘3)")
-                DatePicker("", selection: $model.day, displayedComponents: .date).labelsHidden()
+                Button { showCalendar.toggle() } label: { Image(systemName: "calendar") }
+                    .help("Aller à une date")
+                    .popover(isPresented: $showCalendar, arrowEdge: .bottom) {
+                        DatePicker("", selection: $model.day, displayedComponents: .date)
+                            .datePickerStyle(.graphical).labelsHidden().padding(12)
+                    }
                 Menu {
                     Button("Rendez-vous prévu…") { model.editor = model.newPlanned() }
                     Button("Activité passée…") { model.editor = model.newPast() }
@@ -37,6 +43,8 @@ struct ContentView: View {
             }
         }
         .navigationTitle(model.periodTitle)
+        .tint(Theme.accent)
+        .fontDesign(.rounded)
         .sheet(item: $model.editor) { target in
             EditorSheet(target: target)
         }

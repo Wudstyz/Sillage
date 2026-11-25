@@ -27,11 +27,14 @@ struct MenuBarPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Sillage").font(.headline)
+            HStack(spacing: 8) {
+                Image(nsImage: NSApp.applicationIconImage).resizable().interpolation(.high).frame(width: 24, height: 24)
+                Text("Sillage").font(Theme.rounded(17, .bold)).foregroundStyle(Theme.ink)
+            }
 
             if let next = Actions.nextPlanned(model.entries, now: model.now) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Label("Prochain rendez-vous", systemImage: "calendar").font(.caption).foregroundStyle(.secondary)
+                    Text("Prochain rendez-vous").sectionLabel()
                     HStack {
                         Circle().fill(Theme.color(for: next.category)).frame(width: 10, height: 10)
                         VStack(alignment: .leading) {
@@ -40,14 +43,14 @@ struct MenuBarPanel: View {
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Button("J'y suis") { model.arrive(at: next) }.controlSize(.small)
+                        Button("J'y suis") { model.arrive(at: next) }.buttonStyle(AccentButtonStyle(compact: true))
                     }
                 }
                 Divider()
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Label("En cours", systemImage: "play.circle").font(.caption).foregroundStyle(.secondary)
+                Text("En cours").sectionLabel()
                 if model.running.isEmpty { Text("Rien en cours.").foregroundStyle(.secondary) }
                 ForEach(model.running) { e in
                     HStack {
@@ -59,18 +62,22 @@ struct MenuBarPanel: View {
                                 .foregroundStyle(DayLogic.isLikelyForgotten(e, now: model.now) ? .orange : .secondary)
                         }
                         Spacer()
-                        Button { model.stop(e.id) } label: { Image(systemName: "stop.fill") }
-                            .buttonStyle(.borderless).help("Terminer maintenant")
+                        Button { model.stop(e.id) } label: { Image(systemName: "stop.fill").font(.system(size: 10)) }
+                            .buttonStyle(StopButtonStyle()).help("Terminer maintenant")
                     }
                 }
             }
             Divider()
 
             VStack(alignment: .leading, spacing: 8) {
-                Label("Je commence", systemImage: "plus.circle").font(.caption).foregroundStyle(.secondary)
+                Text("Je commence").sectionLabel()
                 HStack {
-                    TextField("Que faites-vous ?", text: $title).textFieldStyle(.roundedBorder).onSubmit(begin)
+                    TextField("Que faites-vous ?", text: $title).textFieldStyle(.plain).onSubmit(begin)
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.background))
+                        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(Theme.line))
                     Button(action: begin) { Image(systemName: "play.fill") }
+                        .buttonStyle(AccentButtonStyle())
                         .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
@@ -78,7 +85,7 @@ struct MenuBarPanel: View {
                         Button { model.start(title: p.title, category: p.category) } label: {
                             Label(p.title, systemImage: p.symbol).font(.caption).frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .buttonStyle(.bordered).tint(Theme.color(for: p.category))
+                        .buttonStyle(ChipButtonStyle(category: p.category))
                     }
                 }
             }
@@ -94,7 +101,10 @@ struct MenuBarPanel: View {
             }
         }
         .padding(14)
-        .frame(width: 320)
+        .frame(width: 330)
+        .background(Theme.panel)
+        .tint(Theme.accent)
+        .fontDesign(.rounded)
     }
 
     private func begin() {
