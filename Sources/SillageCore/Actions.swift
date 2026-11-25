@@ -35,4 +35,18 @@ public enum Actions {
         if m == 0 { return "à l'heure" }
         return m > 0 ? "\(m) min de retard" : "\(-m) min d'avance"
     }
+
+    /// Prochain rendez-vous prévu pas encore honoré : à venir, ou déjà commencé et non terminé (donc en retard).
+    public static func nextPlanned(_ entries: [Entry], now: Date) -> Entry? {
+        entries
+            .filter { $0.kind == .planned && !isArrived($0, in: entries) && $0.effectiveEnd(now: now) > now }
+            .min { $0.start < $1.start }
+    }
+
+    /// « dans 25 min » / « en retard de 10 min » pour un rendez-vous prévu.
+    public static func countdown(to planned: Entry, now: Date) -> String {
+        let m = Int((planned.start.timeIntervalSince(now) / 60).rounded())
+        if m > 0 { return "dans \(DayLogic.formatDuration(TimeInterval(m * 60)))" }
+        return m == 0 ? "maintenant" : "commencé il y a \(DayLogic.formatDuration(TimeInterval(-m * 60)))"
+    }
 }

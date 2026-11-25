@@ -5,7 +5,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.appearance = NSAppearance(named: .aqua)
     }
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+    /// L'app reste active dans la barre de menus quand la fenêtre est fermée.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 }
 
 @main
@@ -14,7 +15,8 @@ struct SillageApp: App {
     @StateObject private var model = AppModel()
 
     var body: some Scene {
-        WindowGroup("Sillage") {
+        // Une seule fenêtre : « Ouvrir Sillage » (barre de menus) la ramène au premier plan au lieu d'en créer une autre.
+        Window("Sillage", id: "main") {
             ContentView()
                 .environmentObject(model)
                 .frame(minWidth: 860, minHeight: 560)
@@ -33,5 +35,11 @@ struct SillageApp: App {
                 Button("Aujourd'hui") { model.day = Date() }.keyboardShortcut("t")
             }
         }
+        MenuBarExtra {
+            MenuBarPanel().environmentObject(model)
+        } label: {
+            MenuBarLabel(model: model)
+        }
+        .menuBarExtraStyle(.window)
     }
 }

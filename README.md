@@ -38,6 +38,7 @@ Tout reste **sur votre Mac** : aucun compte, aucun réseau, aucune donnée envoy
 | Déplacer une activité | **Glisser** le bloc |
 | Changer sa durée | **Étirer** le bord bas du bloc |
 | Corriger une heure oubliée | Clic sur le bloc dans la frise |
+| Agir sans ouvrir la fenêtre | **Barre de menus** : la tâche en cours et son chronomètre y sont affichés ; le panneau montre le prochain rendez-vous (avec **J'y suis**), permet d'arrêter une tâche, d'en démarrer une ou d'utiliser un raccourci. Fermer la fenêtre laisse Sillage actif ; **Quitter** l'arrête |
 | Changer de jour | ‹ › ou ⌘← ⌘→ ; aujourd'hui : ⌘T |
 
 Les données sont dans `~/Library/Application Support/Sillage/data.json` (JSON lisible, écriture atomique). Une copie par jour est gardée dans `Sauvegardes/` (14 jours). Si le fichier devenait illisible, il est mis de côté (`data.corrompu-…`) et jamais écrasé. Une tâche restée « en cours » plus de 12 h est signalée comme oubliée.
@@ -64,7 +65,7 @@ Le cœur (`SillageCore`) est séparé de l'interface SwiftUI (`SillageApp`) ; au
 - Vues semaine et mois
 - Export / import (JSON, iCal) et lecture de vos calendriers existants
 - Catégories et raccourcis personnalisés
-- Raccourci global et barre de menus pour démarrer / terminer une tâche
+- Raccourci clavier global pour démarrer / terminer une tâche
 - Récapitulatif de fin de journée
 
 ## Licence

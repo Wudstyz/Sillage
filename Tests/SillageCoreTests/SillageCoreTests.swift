@@ -159,4 +159,17 @@ final class SillageCoreTests: XCTestCase {
         XCTAssertEqual(Manipulation.resized(e, by: -7200).end, at(9, 15))       // durée minimale d'un pas
         XCTAssertNil(Manipulation.resized(entry("run", at(9), nil), by: 1800).end)  // en cours : intact
     }
+
+    func testNextPlannedAndCountdown() {
+        let past = entry("passé", at(8), at(9), .planned)
+        let late = entry("en cours de retard", at(10), at(11), .planned)
+        let later = entry("plus tard", at(14), at(15), .planned)
+        let now = at(10, 20)
+        XCTAssertEqual(Actions.nextPlanned([later, past, late], now: now)?.title, "en cours de retard")
+        XCTAssertEqual(Actions.countdown(to: late, now: now), "commencé il y a 20 min")
+        XCTAssertEqual(Actions.countdown(to: later, now: now), "dans 3 h 40")
+        let arrived = Entry(title: "x", category: "Autre", kind: .actual, start: at(10, 5), plannedID: late.id)
+        XCTAssertEqual(Actions.nextPlanned([later, late, arrived], now: now)?.title, "plus tard")
+        XCTAssertNil(Actions.nextPlanned([past], now: now))
+    }
 }
