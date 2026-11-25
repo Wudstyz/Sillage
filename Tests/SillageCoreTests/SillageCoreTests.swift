@@ -269,4 +269,26 @@ final class SillageCoreTests: XCTestCase {
         try store.save([first])                                                  // ancien appel, sans séries
         XCTAssertEqual(store.load().series, [])
     }
+
+    // MARK: Grilles semaine et mois
+
+    func testWeekStartsOnMonday() {
+        let w = CalendarGrid.week(containing: d(2026, 11, 25), calendar: fixed)      // mercredi
+        XCTAssertEqual(w.count, 7)
+        XCTAssertEqual(w.first, d(2026, 11, 23, 0)); XCTAssertEqual(w.last, d(2026, 11, 29, 0))
+    }
+
+    func testMonthGridCoversWholeWeeks() {
+        let g = CalendarGrid.month(containing: d(2026, 11, 10), calendar: fixed)     // nov. 2026 : 1er = dimanche
+        XCTAssertEqual(g.count, 6)                                                   // il finit un lundi : 6 lignes
+        XCTAssertEqual(g[0][0], d(2026, 10, 26, 0)); XCTAssertEqual(g[0][6], d(2026, 11, 1, 0))
+        XCTAssertEqual(g[5][0], d(2026, 11, 30, 0)); XCTAssertEqual(g[5][6], d(2026, 12, 6, 0))
+        XCTAssertTrue(g.allSatisfy { $0.count == 7 })
+        // un mois de 28 jours commençant un lundi tient en 4 semaines (février 2027)
+        XCTAssertEqual(CalendarGrid.month(containing: d(2027, 2, 14), calendar: fixed).count, 4)
+        // mai 2026 : du vendredi 1er au dimanche 31, soit 5 semaines
+        XCTAssertEqual(CalendarGrid.month(containing: d(2026, 5, 15), calendar: fixed).count, 5)
+        XCTAssertTrue(CalendarGrid.isSameMonth(d(2026, 11, 1), d(2026, 11, 30), calendar: fixed))
+        XCTAssertFalse(CalendarGrid.isSameMonth(d(2026, 10, 31), d(2026, 11, 1), calendar: fixed))
+    }
 }

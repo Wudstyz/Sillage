@@ -42,7 +42,8 @@ Everything stays **on your Mac**: no account, no network, no data sent anywhere.
 | Change its duration | **Stretch** the bottom edge of the block |
 | Fix a forgotten time | Click the block on the timeline |
 | Act without opening the window | **Menu bar**: the running task and its timer are shown there; the panel shows the next appointment (with **J'y suis**), lets you stop a task, start one or use a shortcut. Closing the window keeps Sillage running; **Quitter** (Quit) stops it |
-| Change day | ‹ › or ⌘← ⌘→; today: ⌘T |
+| Change view | **Day / Week / Month** (selector top right, ⌘1 ⌘2 ⌘3). **Week** shows seven days side by side, planned dashed and actual solid; **month** shows one cell per day with its appointments and a **colour bar** of the time actually spent. Click a day to open it. The sidebar summary follows the displayed period |
+| Navigate | ‹ › or ⌘← ⌘→ (one day, week or month depending on the view); today: ⌘T |
 
 Data lives in `~/Library/Application Support/Sillage/data.json` (readable JSON, atomic writes). One copy per day is kept in `Sauvegardes/` (14 days). If the file ever becomes unreadable it is set aside (`data.corrompu-…`) and never overwritten. A task left “running” for more than 12 h is flagged as forgotten. The interface is currently in French.
 
@@ -65,7 +66,6 @@ The core (`SillageCore`) is separate from the SwiftUI interface (`SillageApp`); 
 
 ## Ideas for later
 
-- Week and month views
 - Export / import (JSON, iCal) and reading your existing calendars
 - Custom categories and shortcuts
 - Global keyboard shortcut to start / stop a task

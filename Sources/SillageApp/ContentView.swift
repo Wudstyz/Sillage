@@ -9,17 +9,26 @@ struct ContentView: View {
             Sidebar()
                 .navigationSplitViewColumnWidth(min: 250, ideal: 280, max: 340)
         } detail: {
-            TimelineView()
+            switch model.viewMode {
+            case .day: TimelineView()
+            case .week: WeekView()
+            case .month: MonthView()
+            }
         }
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
-                Button { model.shift(days: -1) } label: { Image(systemName: "chevron.left") }
-                    .help("Jour précédent")
-                Button("Aujourd'hui") { model.day = Date() }.disabled(model.isToday)
-                Button { model.shift(days: 1) } label: { Image(systemName: "chevron.right") }
-                    .help("Jour suivant")
+                Button { model.navigate(-1) } label: { Image(systemName: "chevron.left") }
+                    .help("Période précédente (⌘←)")
+                Button("Aujourd'hui") { model.day = Date() }.disabled(model.isCurrentPeriod)
+                Button { model.navigate(1) } label: { Image(systemName: "chevron.right") }
+                    .help("Période suivante (⌘→)")
             }
             ToolbarItemGroup {
+                Picker("Vue", selection: $model.viewMode) {
+                    ForEach(ViewMode.allCases) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .help("Jour (⌘1) · Semaine (⌘2) · Mois (⌘3)")
                 DatePicker("", selection: $model.day, displayedComponents: .date).labelsHidden()
                 Menu {
                     Button("Rendez-vous prévu…") { model.editor = model.newPlanned() }
@@ -27,7 +36,7 @@ struct ContentView: View {
                 } label: { Label("Ajouter", systemImage: "plus") }
             }
         }
-        .navigationTitle(model.day.formatted(.dateTime.weekday(.wide).day().month(.wide).year()).capitalized)
+        .navigationTitle(model.periodTitle)
         .sheet(item: $model.editor) { target in
             EditorSheet(target: target)
         }

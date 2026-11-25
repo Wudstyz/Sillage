@@ -75,8 +75,8 @@ struct Sidebar: View {
                 }
             }
 
-            Section("Bilan du jour") {
-                let totals = DayLogic.totals(model.entries, on: model.day, now: model.now)
+            Section(model.periodBilanTitle) {
+                let totals = model.periodTotals()
                 if totals.isEmpty { Text("Aucune activité enregistrée.").foregroundStyle(.secondary) }
                 ForEach(totals, id: \.category) { t in
                     HStack {

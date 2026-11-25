@@ -30,9 +30,13 @@ struct SillageApp: App {
                     .keyboardShortcut("n", modifiers: [.command, .shift])
             }
             CommandMenu("Journée") {
-                Button("Jour précédent") { model.shift(days: -1) }.keyboardShortcut(.leftArrow, modifiers: .command)
-                Button("Jour suivant") { model.shift(days: 1) }.keyboardShortcut(.rightArrow, modifiers: .command)
+                Button("Période précédente") { model.navigate(-1) }.keyboardShortcut(.leftArrow, modifiers: .command)
+                Button("Période suivante") { model.navigate(1) }.keyboardShortcut(.rightArrow, modifiers: .command)
                 Button("Aujourd'hui") { model.day = Date() }.keyboardShortcut("t")
+                Divider()
+                Button("Vue Jour") { model.viewMode = .day }.keyboardShortcut("1")
+                Button("Vue Semaine") { model.viewMode = .week }.keyboardShortcut("2")
+                Button("Vue Mois") { model.viewMode = .month }.keyboardShortcut("3")
             }
         }
         MenuBarExtra {

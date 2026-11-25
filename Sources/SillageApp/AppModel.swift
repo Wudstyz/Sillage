@@ -2,11 +2,20 @@ import Foundation
 import SwiftUI
 import SillageCore
 
+enum ViewMode: String, CaseIterable, Identifiable {
+    case day, week, month
+    var id: String { rawValue }
+    var label: String { switch self { case .day: return "Jour"; case .week: return "Semaine"; case .month: return "Mois" } }
+}
+
 @MainActor
 final class AppModel: ObservableObject {
     @Published var entries: [Entry] = []
     @Published var series: [Series] = []
     @Published var day = Date()
+    @Published var viewMode: ViewMode = .day {
+        didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: "viewMode") }
+    }
     @Published var now = Date()
     /// Entrée en cours d'édition dans la feuille modale (nouvelle ou existante).
     @Published var editor: EditorTarget?
@@ -20,6 +29,9 @@ final class AppModel: ObservableObject {
 
     init(store: Store = .default) {
         self.store = store
+        // SILLAGE_VIEW : vue affichée au lancement (captures d'écran de la documentation).
+        let saved = ProcessInfo.processInfo.environment["SILLAGE_VIEW"] ?? UserDefaults.standard.string(forKey: "viewMode")
+        viewMode = ViewMode(rawValue: saved ?? "") ?? .day
         let loaded = store.load()
         entries = loaded.entries
         series = loaded.series
@@ -48,6 +60,62 @@ final class AppModel: ObservableObject {
     var isToday: Bool { Calendar.current.isDateInToday(day) }
 
     func shift(days: Int) { day = Calendar.current.date(byAdding: .day, value: days, to: day) ?? day }
+
+    /// Période précédente (-1) ou suivante (+1) selon la vue : un jour, une semaine ou un mois.
+    func navigate(_ direction: Int) {
+        switch viewMode {
+        case .day: shift(days: direction)
+        case .week: shift(days: 7 * direction)
+        case .month: day = Calendar.current.date(byAdding: .month, value: direction, to: day) ?? day
+        }
+    }
+
+    /// Le jour affiché est-il dans la période en cours (aujourd'hui, cette semaine, ce mois) ?
+    var isCurrentPeriod: Bool {
+        let cal = Calendar.current
+        switch viewMode {
+        case .day: return cal.isDateInToday(day)
+        case .week: return cal.isDate(day, equalTo: Date(), toGranularity: .weekOfYear)
+        case .month: return cal.isDate(day, equalTo: Date(), toGranularity: .month)
+        }
+    }
+
+    /// Ouvre un jour précis dans la vue Jour.
+    func open(day: Date) {
+        self.day = day
+        viewMode = .day
+    }
+
+    var periodTitle: String {
+        switch viewMode {
+        case .day: return day.formatted(.dateTime.weekday(.wide).day().month(.wide).year()).capitalized
+        case .week:
+            // Court, pour ne pas être tronqué par le sélecteur de vue : « 23 – 29 nov. 2026 » ou « 30 nov. – 6 déc. 2026 ».
+            let w = CalendarGrid.week(containing: day)
+            let sameMonth = Calendar.current.isDate(w[0], equalTo: w[6], toGranularity: .month)
+            let start = sameMonth ? w[0].formatted(.dateTime.day()) : w[0].formatted(.dateTime.day().month(.abbreviated))
+            return "\(start) – \(w[6].formatted(.dateTime.day().month(.abbreviated).year()))"
+        case .month: return day.formatted(.dateTime.month(.wide).year()).capitalized
+        }
+    }
+
+    var periodBilanTitle: String {
+        switch viewMode { case .day: return "Bilan du jour"; case .week: return "Bilan de la semaine"; case .month: return "Bilan du mois" }
+    }
+
+    /// Temps passé par catégorie sur la période affichée.
+    func periodTotals() -> [(category: String, duration: TimeInterval)] {
+        let cal = Calendar.current
+        let days: [Date]
+        switch viewMode {
+        case .day: days = [day]
+        case .week: days = CalendarGrid.week(containing: day)
+        case .month: days = CalendarGrid.month(containing: day).flatMap { $0 }.filter { cal.isDate($0, equalTo: day, toGranularity: .month) }
+        }
+        var sums: [String: TimeInterval] = [:]
+        for d in days { for t in DayLogic.totals(entries, on: d, now: now) { sums[t.category, default: 0] += t.duration } }
+        return sums.map { ($0.key, $0.value) }.sorted { $0.1 > $1.1 }
+    }
 
     // MARK: Actions
 
