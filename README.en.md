@@ -28,13 +28,16 @@ Everything stays **on your Mac**: no account, no network, no data sent anywhere.
 | I want to… | I do… |
 |---|---|
 | Start a task now | Left panel: title, category, **Démarrer maintenant** (Start now) |
+| Launch a common activity (shower, meal, sleep, commute, break, sport) | One click on a **shortcut** |
+| Switch from one task to the next | “Terminer la tâche en cours” checkbox (on by default) |
 | Stop a running task | ■ button under “En cours” (Running) |
+| Tell I've arrived at an appointment | Right-click the appointment → **J'y suis** (“I'm here”): the real task starts and the timeline shows how early or late you were |
 | Add an appointment | **+ → Rendez-vous prévu** (⌘N) |
 | Log something already done (shower, lunch…) | **+ → Activité passée** (⇧⌘N) |
 | Fix a forgotten time | Click the block on the timeline |
 | Change day | ‹ › or ⌘← ⌘→; today: ⌘T |
 
-Data lives in `~/Library/Application Support/Sillage/data.json` (readable JSON, atomic writes). The interface is currently in French.
+Data lives in `~/Library/Application Support/Sillage/data.json` (readable JSON, atomic writes). One copy per day is kept in `Sauvegardes/` (14 days). If the file ever becomes unreadable it is set aside (`data.corrompu-…`) and never overwritten. A task left “running” for more than 12 h is flagged as forgotten. The interface is currently in French.
 
 ## Install
 
@@ -57,7 +60,7 @@ The core (`SillageCore`) is separate from the SwiftUI interface (`SillageApp`); 
 
 - Week and month views
 - Export / import (JSON, iCal) and reading your existing calendars
-- Custom categories
+- Custom categories and shortcuts
 - Global shortcut and menu-bar item to start / stop a task
 - End-of-day summary
 

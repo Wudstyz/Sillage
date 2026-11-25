@@ -45,6 +45,10 @@ struct EditorSheet: View {
                 if !target.isNew {
                     Button("Supprimer", role: .destructive) { model.delete(entry.id); dismiss() }
                 }
+                if planned && !target.isNew && !model.isArrived(target.entry) {
+                    Button("J'y suis") { model.arrive(at: target.entry); dismiss() }
+                        .help("Démarrer maintenant la tâche réelle liée à ce rendez-vous")
+                }
                 Spacer()
                 Button("Annuler") { dismiss() }.keyboardShortcut(.cancelAction)
                 Button("Enregistrer") {

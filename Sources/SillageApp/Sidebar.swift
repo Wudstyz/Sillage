@@ -29,6 +29,23 @@ struct Sidebar: View {
                 .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
             }
 
+            Section("Raccourcis") {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    ForEach(Preset.defaults, id: \.title) { p in
+                        Button {
+                            model.start(title: p.title, category: p.category)
+                            model.day = Date()
+                        } label: {
+                            Label(p.title, systemImage: p.symbol).frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(Theme.color(for: p.category))
+                        .help("Démarrer « \(p.title) » maintenant")
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+
             Section("En cours") {
                 if model.running.isEmpty {
                     Text("Rien en cours.").foregroundStyle(.secondary)

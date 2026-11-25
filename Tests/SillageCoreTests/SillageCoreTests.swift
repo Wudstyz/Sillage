@@ -90,4 +90,44 @@ final class SillageCoreTests: XCTestCase {
         XCTAssertTrue(DayLogic.isLikelyForgotten(running, now: at(14)))
         XCTAssertFalse(DayLogic.isLikelyForgotten(entry("y", at(2), at(3)), now: at(20)))
     }
+
+    func testStartTaskStopsRunningOnlyWhenAsked() {
+        let running = entry("douche", at(7), nil)
+        let kept = Actions.startTask([running], title: "repas", category: "Repas", now: at(8), stopRunning: false)
+        XCTAssertNil(kept[0].end)
+        let switched = Actions.startTask([running], title: "repas", category: "Repas", now: at(8), stopRunning: true)
+        XCTAssertEqual(switched[0].end, at(8))
+        XCTAssertEqual(switched[1].start, at(8))
+        XCTAssertNil(switched[1].end)
+    }
+
+    func testArriveCreatesLinkedEntryOnce() {
+        let rdv = entry("Médecin", at(9), at(10), .planned, "Santé")
+        let once = Actions.arrive([rdv], at: rdv.id, now: at(9, 10), stopRunning: true)
+        XCTAssertEqual(once.count, 2)
+        XCTAssertEqual(once[1].plannedID, rdv.id)
+        XCTAssertEqual(once[1].category, "Santé")
+        XCTAssertEqual(Actions.arrive(once, at: rdv.id, now: at(9, 20), stopRunning: true).count, 2) // pas de doublon
+        XCTAssertEqual(Actions.arrive(once, at: once[1].id, now: at(9, 20), stopRunning: true).count, 2) // pas un « prévu »
+        XCTAssertTrue(Actions.isArrived(rdv, in: once))
+    }
+
+    func testPunctuality() {
+        let rdv = entry("Médecin", at(9), at(10), .planned)
+        var a = Entry(title: "Médecin", category: "Santé", kind: .actual, start: at(9, 10), plannedID: rdv.id)
+        XCTAssertEqual(Actions.punctuality(of: a, in: [rdv, a]), "10 min de retard")
+        a.start = at(8, 55); XCTAssertEqual(Actions.punctuality(of: a, in: [rdv, a]), "5 min d'avance")
+        a.start = at(9); XCTAssertEqual(Actions.punctuality(of: a, in: [rdv, a]), "à l'heure")
+        XCTAssertNil(Actions.punctuality(of: entry("x", at(9), nil), in: []))
+    }
+
+    func testOldFilesWithoutPlannedIDStillDecode() throws {
+        let json = #"{"entries":[{"id":"6F0B9C1E-0000-4000-8000-000000000001","title":"a","category":"Autre","kind":"actual","start":"2026-11-25T08:00:00Z"}]}"#
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("sillage-\(UUID()).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try Data(json.utf8).write(to: url)
+        let r = Store(url: url).load()
+        XCTAssertEqual(r.entries.count, 1)
+        XCTAssertNil(r.entries[0].plannedID)
+    }
 }

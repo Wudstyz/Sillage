@@ -42,19 +42,29 @@ final class AppModel: ObservableObject {
     // MARK: Actions
 
     /// « Je commence maintenant » : une tâche réelle sans fin.
-    /// `stopRunning` : termine au même instant les tâches en cours (on passe de l'une à l'autre).
-    func start(title: String, category: String, stopRunning: Bool = false) {
+    /// Réglage partagé avec la case de la barre latérale (par défaut : activé).
+    var stopRunningOnStart: Bool { UserDefaults.standard.object(forKey: "stopRunningOnStart") as? Bool ?? true }
+
+    /// « Je commence maintenant » : une tâche réelle sans fin.
+    func start(title: String, category: String, stopRunning: Bool? = nil) {
         let t = title.trimmingCharacters(in: .whitespaces)
         guard !t.isEmpty else { return }
         now = Date()
-        if stopRunning {
-            for i in entries.indices where entries[i].kind == .actual && entries[i].isRunning {
-                entries[i].end = max(now, entries[i].start)
-            }
-        }
-        entries.append(Entry(title: t, category: category, kind: .actual, start: now))
+        entries = Actions.startTask(entries, title: t, category: category, now: now,
+                                    stopRunning: stopRunning ?? stopRunningOnStart)
         persist()
     }
+
+    /// « J'y suis » : démarre maintenant la tâche réelle liée à ce rendez-vous.
+    func arrive(at planned: Entry) {
+        now = Date()
+        entries = Actions.arrive(entries, at: planned.id, now: now, stopRunning: stopRunningOnStart)
+        day = Date()
+        persist()
+    }
+
+    func isArrived(_ planned: Entry) -> Bool { Actions.isArrived(planned, in: entries) }
+    func punctuality(of e: Entry) -> String? { Actions.punctuality(of: e, in: entries) }
 
     func stop(_ id: UUID) {
         now = Date()

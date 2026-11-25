@@ -28,13 +28,16 @@ Tout reste **sur votre Mac** : aucun compte, aucun réseau, aucune donnée envoy
 | Je veux… | Je fais… |
 |---|---|
 | Commencer une tâche maintenant | Panneau de gauche : titre, catégorie, **Démarrer maintenant** |
+| Lancer une activité courante (douche, repas, sommeil, trajet, pause, sport) | Un clic sur un **raccourci** |
+| Enchaîner deux tâches | Case « Terminer la tâche en cours » (cochée par défaut) |
 | Terminer une tâche en cours | Bouton ■ dans « En cours » |
+| Signaler que je suis arrivé à un rendez-vous | Clic droit sur le rendez-vous → **J'y suis** : la tâche réelle démarre, et la frise affiche le retard ou l'avance |
 | Ajouter un rendez-vous | **+ → Rendez-vous prévu** (⌘N) |
 | Noter une activité déjà passée (douche, repas…) | **+ → Activité passée** (⇧⌘N) |
 | Corriger une heure oubliée | Clic sur le bloc dans la frise |
 | Changer de jour | ‹ › ou ⌘← ⌘→ ; aujourd'hui : ⌘T |
 
-Les données sont dans `~/Library/Application Support/Sillage/data.json` (JSON lisible, écriture atomique).
+Les données sont dans `~/Library/Application Support/Sillage/data.json` (JSON lisible, écriture atomique). Une copie par jour est gardée dans `Sauvegardes/` (14 jours). Si le fichier devenait illisible, il est mis de côté (`data.corrompu-…`) et jamais écrasé. Une tâche restée « en cours » plus de 12 h est signalée comme oubliée.
 
 ## Installation
 
@@ -57,7 +60,7 @@ Le cœur (`SillageCore`) est séparé de l'interface SwiftUI (`SillageApp`) ; au
 
 - Vues semaine et mois
 - Export / import (JSON, iCal) et lecture de vos calendriers existants
-- Catégories personnalisées
+- Catégories et raccourcis personnalisés
 - Raccourci global et barre de menus pour démarrer / terminer une tâche
 - Récapitulatif de fin de journée
 

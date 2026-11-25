@@ -101,7 +101,7 @@ struct TimelineView: View {
         return VStack(alignment: .leading, spacing: 1) {
             Text(e.title).font(.callout.weight(.semibold)).lineLimit(1)
             if h > 38 {
-                Text(range(e)).font(.caption).opacity(0.85)
+                Text(detail(e)).font(.caption).opacity(0.85).lineLimit(1)
             }
         }
         .foregroundStyle(planned ? color : .white)
@@ -113,12 +113,38 @@ struct TimelineView: View {
         .overlay(alignment: .topTrailing) {
             if e.isRunning {
                 Image(systemName: "play.circle.fill").padding(4).foregroundStyle(.white.opacity(0.9))
+            } else if planned && model.isArrived(e) {
+                Image(systemName: "checkmark.circle.fill").padding(4).foregroundStyle(color)
             }
         }
         .contentShape(Rectangle())
+        .contextMenu {
+            if planned && !model.isArrived(e) {
+                Button { model.arrive(at: e) } label: { Label("J'y suis", systemImage: "figure.walk.arrival") }
+            }
+            if e.isRunning {
+                Button { model.stop(e.id) } label: { Label("Terminer maintenant", systemImage: "stop.fill") }
+            }
+            Button { model.editor = AppModel.EditorTarget(entry: e, isNew: false) } label: {
+                Label("Modifier…", systemImage: "pencil")
+            }
+            Divider()
+            Button(role: .destructive) { model.delete(e.id) } label: { Label("Supprimer", systemImage: "trash") }
+        }
         .onTapGesture { model.editor = AppModel.EditorTarget(entry: e, isNew: false) }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(planned ? "Prévu" : "Réel") : \(e.title), \(detail(e))")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { model.editor = AppModel.EditorTarget(entry: e, isNew: false) }
+        .accessibilityAction(named: "J'y suis") { if planned { model.arrive(at: e) } }
         .offset(x: CGFloat(p.lane) * w, y: y)
-        .help("\(e.title) · \(range(e)) · \(e.category)")
+        .help("\(e.title) · \(detail(e)) · \(e.category)")
+    }
+
+    /// Plage horaire, plus la ponctualité si l'entrée vient d'un « J'y suis ».
+    private func detail(_ e: Entry) -> String {
+        guard let p = model.punctuality(of: e) else { return range(e) }
+        return "\(range(e)) · \(p)"
     }
 
     private func range(_ e: Entry) -> String {
