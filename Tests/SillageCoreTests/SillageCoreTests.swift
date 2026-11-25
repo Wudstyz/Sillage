@@ -52,9 +52,42 @@ final class SillageCoreTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("sillage-\(UUID()).json")
         defer { try? FileManager.default.removeItem(at: url) }
         let store = Store(url: url)
-        XCTAssertEqual(store.load(), [])
+        XCTAssertEqual(store.load().entries, [])
         let e = Entry(title: "Médecin", category: "Santé", kind: .planned, start: at(10), end: at(11))
         try store.save([e])
-        XCTAssertEqual(store.load(), [e])
+        XCTAssertEqual(store.load().entries, [e])
+    }
+
+    func testCorruptFileIsQuarantinedNotOverwritten() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("sillage-\(UUID())")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("data.json")
+        try Data("{ pas du json".utf8).write(to: url)
+        let store = Store(url: url)
+        let r = store.load()
+        XCTAssertEqual(r.entries, [])
+        let aside = try XCTUnwrap(r.quarantinedAt)
+        XCTAssertEqual(try String(contentsOf: aside), "{ pas du json")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
+        try store.save([])  // la sauvegarde suivante n'écrase pas l'original
+        XCTAssertEqual(try String(contentsOf: aside), "{ pas du json")
+    }
+
+    func testDailyBackupKeepsOnlyRecent() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("sillage-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = Store(url: dir.appendingPathComponent("data.json"))
+        try store.save([])                       // crée le fichier
+        for d in 0..<20 { store.backupIfNeeded(now: at(0).addingTimeInterval(Double(d) * 86400), keep: 14) }
+        let files = try FileManager.default.contentsOfDirectory(atPath: store.backupsDirectory.path)
+        XCTAssertEqual(files.count, 14)
+    }
+
+    func testForgottenTask() {
+        let running = entry("x", at(2), nil)
+        XCTAssertFalse(DayLogic.isLikelyForgotten(running, now: at(13)))
+        XCTAssertTrue(DayLogic.isLikelyForgotten(running, now: at(14)))
+        XCTAssertFalse(DayLogic.isLikelyForgotten(entry("y", at(2), at(3)), now: at(20)))
     }
 }

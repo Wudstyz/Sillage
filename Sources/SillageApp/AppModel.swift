@@ -10,13 +10,19 @@ final class AppModel: ObservableObject {
     /// Entrée en cours d'édition dans la feuille modale (nouvelle ou existante).
     @Published var editor: EditorTarget?
     @Published var saveError: String?
+    /// Message affiché si le fichier de données était illisible au lancement.
+    @Published var loadWarning: String?
 
     private let store: Store
     private var timer: Timer?
 
     init(store: Store = .default) {
         self.store = store
-        entries = store.load()
+        let loaded = store.load()
+        entries = loaded.entries
+        if let aside = loaded.quarantinedAt {
+            loadWarning = "Le fichier de données était illisible. Il a été conservé tel quel (\(aside.lastPathComponent), dans \(aside.deletingLastPathComponent().path)) et Sillage repart d'une journée vide."
+        }
         timer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.now = Date() }
         }
@@ -36,10 +42,16 @@ final class AppModel: ObservableObject {
     // MARK: Actions
 
     /// « Je commence maintenant » : une tâche réelle sans fin.
-    func start(title: String, category: String) {
+    /// `stopRunning` : termine au même instant les tâches en cours (on passe de l'une à l'autre).
+    func start(title: String, category: String, stopRunning: Bool = false) {
         let t = title.trimmingCharacters(in: .whitespaces)
         guard !t.isEmpty else { return }
         now = Date()
+        if stopRunning {
+            for i in entries.indices where entries[i].kind == .actual && entries[i].isRunning {
+                entries[i].end = max(now, entries[i].start)
+            }
+        }
         entries.append(Entry(title: t, category: category, kind: .actual, start: now))
         persist()
     }
@@ -49,6 +61,13 @@ final class AppModel: ObservableObject {
         guard let i = entries.firstIndex(where: { $0.id == id }) else { return }
         entries[i].end = max(now, entries[i].start)
         persist()
+    }
+
+    /// Ouvre la fiche d'une tâche oubliée avec une fin à renseigner (par défaut : maintenant).
+    func fixEnd(of entry: Entry) {
+        var e = entry
+        e.end = max(Date(), entry.start.addingTimeInterval(60))
+        editor = EditorTarget(entry: e, isNew: false)
     }
 
     func newPlanned() -> EditorTarget {

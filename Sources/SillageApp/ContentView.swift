@@ -31,6 +31,10 @@ struct ContentView: View {
         .sheet(item: $model.editor) { target in
             EditorSheet(target: target)
         }
+        .alert("Données illisibles", isPresented: Binding(get: { model.loadWarning != nil },
+                                                           set: { if !$0 { model.loadWarning = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(model.loadWarning ?? "") }
         .alert("Enregistrement impossible", isPresented: Binding(get: { model.saveError != nil },
                                                                   set: { if !$0 { model.saveError = nil } })) {
             Button("OK", role: .cancel) {}

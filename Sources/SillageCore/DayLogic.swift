@@ -59,6 +59,13 @@ public enum DayLogic {
         return sums.map { ($0.key, $0.value) }.sorted { $0.1 > $1.1 }
     }
 
+    /// Au-delà de cette durée, une tâche encore « en cours » est probablement oubliée.
+    public static let forgottenThreshold: TimeInterval = 12 * 3600
+
+    public static func isLikelyForgotten(_ e: Entry, now: Date) -> Bool {
+        e.isRunning && now.timeIntervalSince(e.start) >= forgottenThreshold
+    }
+
     public static func formatDuration(_ interval: TimeInterval) -> String {
         let minutes = max(0, Int((interval / 60).rounded()))
         let h = minutes / 60, m = minutes % 60

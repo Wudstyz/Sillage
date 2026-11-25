@@ -5,16 +5,22 @@ struct Sidebar: View {
     @EnvironmentObject var model: AppModel
     @State private var title = ""
     @State private var category = "Travail"
+    @AppStorage("stopRunningOnStart") private var stopRunning = true
 
     var body: some View {
         List {
             Section("Je commence") {
                 TextField("Que faites-vous ?", text: $title)
+                    .textFieldStyle(.roundedBorder)
                     .onSubmit(begin)
                 Picker("Catégorie", selection: $category) {
                     ForEach(Categories.all, id: \.self) { c in
                         Label(c, systemImage: "circle.fill").foregroundStyle(Theme.color(for: c)).tag(c)
                     }
+                }
+                if !model.running.isEmpty {
+                    Toggle("Terminer la tâche en cours", isOn: $stopRunning)
+                        .help("Passer d'une tâche à l'autre : la précédente s'arrête à l'instant où la nouvelle commence.")
                 }
                 Button(action: begin) {
                     Label("Démarrer maintenant", systemImage: "play.fill").frame(maxWidth: .infinity)
@@ -28,6 +34,8 @@ struct Sidebar: View {
                     Text("Rien en cours.").foregroundStyle(.secondary)
                 }
                 ForEach(model.running) { e in
+                    let forgotten = DayLogic.isLikelyForgotten(e, now: model.now)
+                    VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Circle().fill(Theme.color(for: e.category)).frame(width: 10, height: 10)
                         VStack(alignment: .leading) {
@@ -38,6 +46,14 @@ struct Sidebar: View {
                         Spacer()
                         Button { model.stop(e.id) } label: { Image(systemName: "stop.fill") }
                             .buttonStyle(.borderless).help("Terminer maintenant")
+                    }
+                    if forgotten {
+                        Label("En cours depuis \(DayLogic.formatDuration(model.now.timeIntervalSince(e.start))) : oubliée ?",
+                              systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption).foregroundStyle(.orange)
+                        Button("Indiquer l'heure de fin…") { model.fixEnd(of: e) }
+                            .controlSize(.small)
+                    }
                     }
                 }
             }
@@ -58,7 +74,7 @@ struct Sidebar: View {
     }
 
     private func begin() {
-        model.start(title: title, category: category)
+        model.start(title: title, category: category, stopRunning: stopRunning)
         title = ""
         model.day = Date()
     }
