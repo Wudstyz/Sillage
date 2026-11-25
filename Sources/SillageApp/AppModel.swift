@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 import SillageCore
 
 enum ViewMode: String, CaseIterable, Identifiable {
@@ -29,7 +30,9 @@ struct Snapshot {
 final class AppModel: ObservableObject {
     @Published var entries: [Entry] = []
     @Published var series: [Series] = []
-    @Published var day = Date()
+    @Published var day = Date() {
+        didSet { calendars.ensureLoaded(around: day) }
+    }
     @Published var viewMode: ViewMode = .day {
         didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: "viewMode") }
     }
@@ -41,6 +44,8 @@ final class AppModel: ObservableObject {
     @Published var selectedTask: String?
     /// Fenêtre « Sauvegarde et export ».
     @Published var showBackup = false
+    /// Fenêtre « Calendriers Mac et Google ».
+    @Published var showCalendars = false
     /// Dernière copie de secours continue (heure).
     @Published var lastBackup: Date?
     /// Dossier choisi pour une copie automatique quotidienne (iCloud Drive, disque externe…).
@@ -62,6 +67,9 @@ final class AppModel: ObservableObject {
     private var timer: Timer?
     private let notifier = Notifier()
     private var history = UndoStack<Snapshot>()
+    /// Calendriers du Mac (optionnels, en lecture seule).
+    let calendars = CalendarSource()
+    private var calendarsObserver: AnyCancellable?
 
     init(store: Store = .default) {
         self.store = store
@@ -77,12 +85,17 @@ final class AppModel: ObservableObject {
             loadWarning = "Le fichier de données était illisible. Il a été conservé tel quel (\(aside.lastPathComponent), dans \(aside.deletingLastPathComponent().path)) et Sillage repart d'une journée vide."
         }
         AppModel.current = self
+        calendarsObserver = calendars.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        calendars.start(anchor: Date())
         lastBackup = store.latestSnapshotDate()
         backupFolder = Self.backupFolderEnv ?? UserDefaults.standard.string(forKey: "backupFolder")
         if Series.topUp(&series, entries: &entries, now: Date()) { persist() } else { notifier.reschedule(entries, now: Date()) }
         runBackups(force: false)
         mirrorToFolder()
         // SILLAGE_OPEN_BACKUP : ouvre la fenêtre de sauvegarde au lancement (captures d'écran de la documentation).
+        if ProcessInfo.processInfo.environment["SILLAGE_OPEN_CALENDARS"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.showCalendars = true }
+        }
         if ProcessInfo.processInfo.environment["SILLAGE_OPEN_BACKUP"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.showBackup = true }
         }
@@ -102,6 +115,10 @@ final class AppModel: ObservableObject {
         var entry: Entry
         var isNew: Bool
     }
+
+    /// Les données de Sillage plus, en lecture seule, les rendez-vous de vos calendriers (si l'option est activée).
+    /// À utiliser pour l'affichage ; les enregistrements, exports et sauvegardes n'utilisent que `entries`.
+    var shownEntries: [Entry] { calendars.entries.isEmpty ? entries : entries + calendars.entries }
 
     var running: [Entry] { entries.filter { $0.kind == .actual && $0.isRunning }.sorted { $0.start < $1.start } }
     var isToday: Bool { Calendar.current.isDateInToday(day) }
@@ -227,12 +244,21 @@ final class AppModel: ObservableObject {
     /// « J'y suis » : démarre maintenant la tâche réelle liée à ce rendez-vous.
     func arrive(at planned: Entry) {
         now = Date()
-        commit { entries = Actions.arrive(entries, at: planned.id, now: now, stopRunning: stopRunningOnStart) }
+        if planned.isExternal {
+            // Rendez-vous d'un calendrier : il n'est pas dans nos données ; l'activité réelle y est reliée par son identifiant stable.
+            guard !Actions.isArrived(planned, in: entries) else { return }
+            commit {
+                entries = Actions.startTask(entries, title: planned.title, category: "Autre", plannedID: planned.id,
+                                            now: now, stopRunning: stopRunningOnStart)
+            }
+        } else {
+            commit { entries = Actions.arrive(entries, at: planned.id, now: now, stopRunning: stopRunningOnStart) }
+        }
         day = Date()
     }
 
     func isArrived(_ planned: Entry) -> Bool { Actions.isArrived(planned, in: entries) }
-    func punctuality(of e: Entry) -> String? { Actions.punctuality(of: e, in: entries) }
+    func punctuality(of e: Entry) -> String? { Actions.punctuality(of: e, in: shownEntries) }
 
     func stop(_ id: UUID) {
         now = Date()

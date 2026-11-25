@@ -39,6 +39,7 @@ enum Theme {
         case "Loisirs": return Color(hex: 0x2FAE78)
         case "Hygiène": return Color(hex: 0x24AFC2)
         case "Déplacement": return Color(hex: 0x9C7A5E)
+        case "Calendrier": return Color(hex: 0x5F7A8C)        // ardoise : rendez-vous venus d'un calendrier externe
         default: return Color(hex: 0x8D8A96)
         }
     }
@@ -53,6 +54,7 @@ enum Theme {
         case "Loisirs": return Color(hex: 0x14754A)
         case "Hygiène": return Color(hex: 0x0E7585)
         case "Déplacement": return Color(hex: 0x5E4430)
+        case "Calendrier": return Color(hex: 0x38505F)
         default: return Color(hex: 0x55525E)
         }
     }

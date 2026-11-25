@@ -95,7 +95,7 @@ struct WeekView: View {
 
     private func dayColumn(_ day: Date) -> some View {
         let dayStart = Calendar.current.startOfDay(for: day)
-        let list = DayLogic.entries(model.entries, on: day, now: model.now)
+        let list = DayLogic.entries(model.shownEntries, on: day, now: model.now)
         return GeometryReader { geo in
             ZStack(alignment: .topLeading) {
                 ForEach(DayLogic.lanes(list, now: model.now), id: \.entry.id) { p in
@@ -139,13 +139,18 @@ struct WeekView: View {
                 if planned && !model.isArrived(e) {
                     Button { model.arrive(at: e) } label: { Label("J'y suis", systemImage: "figure.walk.arrival") }
                 }
-                if e.isRunning {
-                    Button { model.stop(e.id) } label: { Label("Terminer maintenant", systemImage: "stop.fill") }
+                if e.isExternal {
+                    Button { model.editor = AppModel.EditorTarget(entry: e, isNew: false) } label: { Label("Détails…", systemImage: "info.circle") }
+                    Button { model.open(day: dayStart) } label: { Label("Ouvrir ce jour", systemImage: "calendar") }
+                } else {
+                    if e.isRunning {
+                        Button { model.stop(e.id) } label: { Label("Terminer maintenant", systemImage: "stop.fill") }
+                    }
+                    Button { model.editor = AppModel.EditorTarget(entry: e, isNew: false) } label: { Label("Modifier…", systemImage: "pencil") }
+                    Button { model.open(day: dayStart) } label: { Label("Ouvrir ce jour", systemImage: "calendar") }
+                    Divider()
+                    Button(role: .destructive) { model.delete(e.id) } label: { Label("Supprimer", systemImage: "trash") }
                 }
-                Button { model.editor = AppModel.EditorTarget(entry: e, isNew: false) } label: { Label("Modifier…", systemImage: "pencil") }
-                Button { model.open(day: dayStart) } label: { Label("Ouvrir ce jour", systemImage: "calendar") }
-                Divider()
-                Button(role: .destructive) { model.delete(e.id) } label: { Label("Supprimer", systemImage: "trash") }
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(planned ? "Prévu" : "Réel") : \(e.title), \(e.start.formatted(date: .omitted, time: .shortened))")

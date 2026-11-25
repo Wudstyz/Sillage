@@ -30,6 +30,47 @@ struct EditorSheet: View {
     }
 
     var body: some View {
+        if target.entry.isExternal { externalBody } else { editorBody }
+    }
+
+    /// Rendez-vous venu d'un calendrier : en lecture seule, avec « J'y suis ».
+    private var externalBody: some View {
+        let e = target.entry
+        let range = "\(e.start.formatted(date: .complete, time: .shortened)) – \((e.end ?? e.start).formatted(date: .omitted, time: .shortened))"
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                Image(systemName: "calendar").font(.system(size: 18, weight: .bold)).foregroundStyle(Theme.color(for: "Calendrier"))
+                Text(e.title).font(Theme.rounded(20, .bold)).foregroundStyle(Theme.ink).lineLimit(2)
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                LabeledContent("Calendrier") { Text(e.source ?? "").foregroundStyle(Theme.ink) }
+                LabeledContent("Quand") { Text(range).foregroundStyle(Theme.ink).multilineTextAlignment(.trailing) }
+                if let p = model.punctuality(of: model.entries.first { $0.plannedID == e.id } ?? e) {
+                    LabeledContent("Pointage") { Text("Honoré · \(p)").foregroundStyle(Theme.color(for: "Loisirs")) }
+                }
+            }
+            .font(Theme.rounded(13))
+            Text("Ce rendez-vous est lu dans votre calendrier : il est en lecture seule dans Sillage. Modifiez-le dans l'app Calendrier.")
+                .font(Theme.rounded(12)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Button("Ouvrir Calendrier") {
+                    if let url = URL(string: "calshow:\(e.start.timeIntervalSinceReferenceDate)") { NSWorkspace.shared.open(url) }
+                }.buttonStyle(ChipButtonStyle(category: "Autre"))
+                Spacer()
+                if !model.isArrived(e) {
+                    Button("J'y suis") { model.arrive(at: e); dismiss() }.buttonStyle(AccentButtonStyle())
+                }
+                Button("Fermer") { dismiss() }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(22)
+        .frame(width: 460)
+        .background(Theme.background)
+        .tint(Theme.accent)
+        .fontDesign(.rounded)
+    }
+
+    private var editorBody: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
                 Circle().fill(Theme.color(for: entry.category)).frame(width: 14, height: 14)

@@ -20,9 +20,11 @@ public struct Entry: Codable, Identifiable, Equatable, Sendable {
     public var seriesID: UUID?
     /// Rappel (rendez-vous prévus) : minutes avant le début ; 0 = à l'heure ; `nil` = aucun rappel.
     public var reminderMinutes: Int?
+    /// Rendez-vous venu d'un calendrier externe (nom du calendrier) : affiché en lecture seule, jamais enregistré.
+    public var source: String?
 
     public init(id: UUID = UUID(), title: String, category: String, kind: EntryKind, start: Date, end: Date? = nil,
-                plannedID: UUID? = nil, seriesID: UUID? = nil, reminderMinutes: Int? = nil) {
+                plannedID: UUID? = nil, seriesID: UUID? = nil, reminderMinutes: Int? = nil, source: String? = nil) {
         self.id = id
         self.title = title
         self.category = category
@@ -32,7 +34,10 @@ public struct Entry: Codable, Identifiable, Equatable, Sendable {
         self.plannedID = plannedID
         self.seriesID = seriesID
         self.reminderMinutes = reminderMinutes
+        self.source = source
     }
+
+    public var isExternal: Bool { source != nil }
 
     public var isRunning: Bool { end == nil }
 

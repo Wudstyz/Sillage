@@ -32,7 +32,7 @@ struct MenuBarPanel: View {
                 Text("Sillage").font(Theme.rounded(17, .bold)).foregroundStyle(Theme.ink)
             }
 
-            if let next = Actions.nextPlanned(model.entries, now: model.now) {
+            if let next = Actions.nextPlanned(model.shownEntries, now: model.now) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Prochain rendez-vous").sectionLabel()
                     HStack {

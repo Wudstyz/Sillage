@@ -57,6 +57,7 @@ struct SillageApp: App {
                 Button("Période précédente") { model.navigate(-1) }.keyboardShortcut(.leftArrow, modifiers: .command)
                 Button("Période suivante") { model.navigate(1) }.keyboardShortcut(.rightArrow, modifiers: .command)
                 Button("Aujourd'hui") { model.day = Date() }.keyboardShortcut("t")
+                Button("Calendriers Mac et Google…") { model.showCalendars = true }.keyboardShortcut("k", modifiers: [.command, .shift])
                 Divider()
                 Button("Vue Jour") { model.viewMode = .day }.keyboardShortcut("1")
                 Button("Vue Semaine") { model.viewMode = .week }.keyboardShortcut("2")

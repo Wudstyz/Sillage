@@ -38,7 +38,7 @@ struct MonthView: View {
         let cal = Calendar.current
         let inMonth = CalendarGrid.isSameMonth(day, model.day)
         let today = cal.isDateInToday(day)
-        let planned = DayLogic.entries(model.entries, kind: .planned, on: day, now: model.now)
+        let planned = DayLogic.entries(model.shownEntries, kind: .planned, on: day, now: model.now)
         let totals = DayLogic.totals(model.entries, on: day, now: model.now)
         let tracked = totals.reduce(0) { $0 + $1.duration }
         // Place disponible pour les pastilles (24 pt chacune) ; si tout ne tient pas, on garde la place de « + N autres ».

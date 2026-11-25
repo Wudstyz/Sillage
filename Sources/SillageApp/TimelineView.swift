@@ -111,7 +111,7 @@ struct TimelineView: View {
     // MARK: Colonnes et blocs
 
     private func column(_ kind: EntryKind, x: CGFloat, width: CGFloat) -> some View {
-        let list = DayLogic.entries(model.entries, kind: kind, on: model.day, now: model.now)
+        let list = DayLogic.entries(model.shownEntries, kind: kind, on: model.day, now: model.now)
         return ZStack(alignment: .topLeading) {
             // Glisser dans le vide pour créer une plage.
             Rectangle().fill(Color.clear).contentShape(Rectangle())
@@ -148,7 +148,10 @@ struct TimelineView: View {
         let live = liveMove[e.id] != nil || liveResize[e.id] != nil
 
         return VStack(alignment: .leading, spacing: 2) {
-            Text(e.title).font(Theme.rounded(13, .semibold)).lineLimit(1)
+            HStack(spacing: 4) {
+                if e.isExternal { Image(systemName: "calendar").font(.system(size: 10, weight: .bold)) }
+                Text(e.title).font(Theme.rounded(13, .semibold)).lineLimit(1)
+            }
             if h > 40 {
                 Text(detail(e)).font(Theme.rounded(11, .medium)).opacity(0.85).lineLimit(1)
             }
@@ -177,17 +180,23 @@ struct TimelineView: View {
             if planned && !model.isArrived(e) {
                 Button { model.arrive(at: e) } label: { Label("J'y suis", systemImage: "figure.walk.arrival") }
             }
-            if e.isRunning {
-                Button { model.stop(e.id) } label: { Label("Terminer maintenant", systemImage: "stop.fill") }
+            if e.isExternal {
+                Button { model.editor = AppModel.EditorTarget(entry: e, isNew: false) } label: {
+                    Label("Détails…", systemImage: "info.circle")
+                }
+            } else {
+                if e.isRunning {
+                    Button { model.stop(e.id) } label: { Label("Terminer maintenant", systemImage: "stop.fill") }
+                }
+                Button { model.editor = AppModel.EditorTarget(entry: e, isNew: false) } label: {
+                    Label("Modifier…", systemImage: "pencil")
+                }
+                Divider()
+                Button(role: .destructive) { model.delete(e.id) } label: { Label("Supprimer", systemImage: "trash") }
             }
-            Button { model.editor = AppModel.EditorTarget(entry: e, isNew: false) } label: {
-                Label("Modifier…", systemImage: "pencil")
-            }
-            Divider()
-            Button(role: .destructive) { model.delete(e.id) } label: { Label("Supprimer", systemImage: "trash") }
         }
         .onTapGesture { model.editor = AppModel.EditorTarget(entry: original, isNew: false) }
-        .gesture(original.isRunning ? nil : DragGesture(minimumDistance: 5, coordinateSpace: .global)
+        .gesture((original.isRunning || original.isExternal) ? nil : DragGesture(minimumDistance: 5, coordinateSpace: .global)
             .onChanged { v in liveMove[original.id] = seconds(v.translation.height) }
             .onEnded { v in
                 liveMove[original.id] = nil
@@ -195,7 +204,7 @@ struct TimelineView: View {
             })
         .overlay(alignment: .bottom) {
             // Poignée du bas : étirer la fin.
-            if !original.isRunning {
+            if !original.isRunning && !original.isExternal {
                 ZStack {
                     Rectangle().fill(Color.clear)
                     if h > 34 { Capsule().fill(ink.opacity(0.45)).frame(width: 24, height: 3) }

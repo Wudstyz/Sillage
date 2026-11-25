@@ -17,7 +17,10 @@ struct Sidebar: View {
                 recentsSection
                 shortcutsSection
                 bilanSection
-                backupFooter
+                VStack(spacing: 8) {
+                    calendarsFooter
+                    backupFooter
+                }
             }
             .padding(16)
         }
@@ -131,6 +134,23 @@ struct Sidebar: View {
     }
 
     // MARK: Sauvegarde
+
+    private var calendarsFooter: some View {
+        Button { model.showCalendars = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "calendar.badge.clock").foregroundStyle(Theme.color(for: "Calendrier"))
+                Text(model.calendars.enabled && model.calendars.access == .granted ? "Calendriers affichés" : "Calendriers Mac et Google")
+                    .font(Theme.rounded(12, .medium)).foregroundStyle(Theme.muted)
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(Theme.muted)
+            }
+            .padding(.vertical, 8).padding(.horizontal, 10)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.ink.opacity(0.04)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Afficher vos rendez-vous de Calendrier / Google (optionnel, ⇧⌘K)")
+    }
 
     private var backupFooter: some View {
         Button { model.showBackup = true } label: {

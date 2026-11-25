@@ -8,7 +8,7 @@ struct RecapView: View {
     @State private var copied = false
 
     var body: some View {
-        let recap = Recap.build(model.entries, on: model.day, now: model.now)
+        let recap = Recap.build(model.shownEntries, on: model.day, now: model.now)
         let text = Recap.markdown(recap, now: model.now)
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {

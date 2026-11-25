@@ -46,6 +46,17 @@ La journée racontée heure par heure, avec les **trous** (« Non renseigné »)
 
 Le récap n'est pas une étape à valider : il est **calculé en continu** à partir de vos données. Il est là pour aujourd'hui, en direct, comme pour n'importe quel jour passé. Il n'y a **pas de bouton « Terminer la journée »** : si vous vous couchez à 21 h et arrêtez une tâche le lendemain, rien ne casse.
 
+### Vos calendriers Mac et Google (facultatif)
+<img src="docs/screenshots/08-calendriers.png" width="560" alt="Fenêtre Calendriers Mac et Google">
+
+Si vos rendez-vous vivent déjà dans l'app **Calendrier** de votre Mac (iCloud, Google, Exchange…), Sillage peut les afficher dans la colonne **Prévu**, avec une petite icône calendrier, pour comparer le prévu et le réel sans rien ressaisir. **C'est une option, désactivée par défaut** : ouvrez-la avec **⇧⌘K** (ou la ligne « Calendriers Mac et Google » en bas de la barre latérale), activez l'interrupteur et acceptez la demande d'autorisation de macOS.
+
+- **Lecture seule** : Sillage n'écrit rien dans vos calendriers et ne copie rien dans ses données (ni dans les sauvegardes ni dans les exports). Ces rendez-vous ne se déplacent ni ne se suppriment depuis Sillage ; « Ouvrir Calendrier » les ouvre dans l'app Calendrier.
+- **« J'y suis »** fonctionne dessus comme sur vos rendez-vous : l'activité réelle démarre, la frise affiche le retard, et le récap les compte (« Honoré · 10 min de retard »).
+- **Vous choisissez les calendriers** à afficher. Les événements refusés ou annulés sont masqués, ceux « toute la journée » aussi (une case les affiche).
+- **Google** : ajoutez votre compte dans *Réglages Système → Comptes Internet → Google* en laissant « Calendriers » coché ; ses agendas apparaissent alors dans la liste.
+- Les rappels restent ceux de l'app Calendrier : Sillage n'en ajoute pas pour ces rendez-vous.
+
 ### Dans la barre de menus
 <img src="docs/screenshots/06-barre-de-menus.png" width="330" alt="Panneau de la barre de menus">
 
@@ -73,6 +84,7 @@ Sillage **ne devine rien** : une tâche continue tant que vous ne l'arrêtez pas
 | Signaler que je suis arrivé | Clic droit sur le rendez-vous → **J'y suis** : la tâche réelle démarre et la frise affiche le retard ou l'avance |
 | Le répéter (kiné chaque mercredi, loyer chaque mois…) | Fiche → **Répéter** : jour, semaine (jours au choix), mois, année ; « toutes les N » ; « jusqu'au ». Chaque occurrence reste modifiable, déplaçable et honorable séparément ; les séries sont prolongées un an à l'avance |
 | Supprimer une série | Fiche d'une occurrence → **Supprimer** → « Cette occurrence seulement » ou « Celle-ci et les suivantes » (ce qui a déjà été vécu reste) |
+| Voir mes rendez-vous de Calendrier / Google | **⇧⌘K** → activer « Afficher mes calendriers » (facultatif, lecture seule) |
 | Être prévenu | Fiche → **Rappel** (à l'heure, 5 min, 15 min, 1 h, 1 jour avant) : notification macOS, même fenêtre fermée |
 
 ### Voir et corriger
@@ -118,7 +130,7 @@ Le cœur (`SillageCore` : modèle, calculs du temps, séries, rapports, récap, 
 
 ## Idées pour la suite
 
-- Lecture de vos calendriers existants (Calendrier, Google…) pour remplir le « Prévu » automatiquement
+- Écrire un rendez-vous de Sillage dans un calendrier (aujourd'hui, la lecture est seule)
 - Export iCal
 - Catégories et raccourcis personnalisés
 - Fenêtre de réglages et lancement à la connexion

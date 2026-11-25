@@ -16,6 +16,8 @@
     <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSRequiresAquaSystemAppearance</key><true/>
+    <key>NSCalendarsUsageDescription</key><string>Sillage lit vos calendriers (Calendrier, iCloud, Google…) pour afficher vos rendez-vous dans la colonne « Prévu ». Il n'écrit rien dans vos calendriers.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key><string>Sillage lit vos calendriers (Calendrier, iCloud, Google…) pour afficher vos rendez-vous dans la colonne « Prévu ». Il n'écrit rien dans vos calendriers.</string>
     <key>NSPrincipalClass</key><string>NSApplication</string>
     <key>NSHumanReadableCopyright</key><string>© Damien POLLET (Wudstyz) — licence MIT</string>
 </dict>

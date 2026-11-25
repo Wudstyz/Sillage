@@ -613,4 +613,47 @@ final class SillageCoreTests: XCTestCase {
         let copy = try XCTUnwrap(store.keepCopyBeforeRestore(now: at(9)))
         XCTAssertEqual(try String(contentsOf: copy), "{ même illisible")
     }
+
+    // MARK: Calendriers externes
+
+    func testCalendarImportFiltersAndMaps() {
+        func ev(_ id: String, _ cal: String, _ h1: Int, _ h2: Int, allDay: Bool = false, declined: Bool = false,
+                cancelled: Bool = false, title: String = "Réunion") -> ExternalEvent {
+            ExternalEvent(identifier: id, calendarID: cal, calendarTitle: "Cal \(cal)", title: title, start: at(h1), end: at(h2),
+                          isAllDay: allDay, isDeclined: declined, isCancelled: cancelled)
+        }
+        let events = [ev("a", "perso", 14, 15), ev("b", "pro", 9, 10), ev("c", "perso", 0, 24, allDay: true),
+                      ev("d", "pro", 11, 12, declined: true), ev("e", "pro", 12, 13, cancelled: true),
+                      ev("f", "pro", 16, 16, title: "  "), ev("g", "perso", 17, 18)]
+        let all = CalendarImport.entries(from: events)
+        XCTAssertEqual(all.map(\.start), [at(9), at(14), at(16), at(17)])          // triés ; refusé, annulé, journée entière écartés
+        XCTAssertTrue(all.allSatisfy { $0.kind == .planned && $0.category == "Calendrier" && $0.isExternal })
+        XCTAssertEqual(all[0].source, "Cal pro")
+        XCTAssertEqual(all[2].title, "Sans titre"); XCTAssertEqual(all[2].end, at(16, 30))   // fin invalide : 30 min
+        XCTAssertEqual(CalendarImport.entries(from: events, showAllDay: true).count, 5)
+        XCTAssertEqual(CalendarImport.entries(from: events, selectedCalendars: ["perso"]).map(\.start), [at(14), at(17)])
+        XCTAssertEqual(CalendarImport.entries(from: events, selectedCalendars: []).count, 0)
+    }
+
+    func testStableIDsDistinguishOccurrences() {
+        let id1 = CalendarImport.stableID(identifier: "evt", start: at(9))
+        XCTAssertEqual(id1, CalendarImport.stableID(identifier: "evt", start: at(9)))             // stable d'un lancement à l'autre
+        XCTAssertNotEqual(id1, CalendarImport.stableID(identifier: "evt", start: at(9).addingTimeInterval(86400)))  // autre occurrence
+        XCTAssertNotEqual(id1, CalendarImport.stableID(identifier: "autre", start: at(9)))
+    }
+
+    func testArrivingAtAnExternalAppointmentLinksByStableID() {
+        let now = at(10)
+        let planned = CalendarImport.entries(from: [ExternalEvent(identifier: "x", calendarID: "c", calendarTitle: "Perso",
+                                                                  title: "Dentiste", start: at(9), end: at(10))])[0]
+        // « J'y suis » : une activité réelle liée par l'identifiant stable (le rendez-vous n'est pas dans les données enregistrées)
+        let saved = Actions.startTask([], title: planned.title, category: "Autre", plannedID: planned.id, now: at(9, 10), stopRunning: true)
+        let shown = saved + [planned]
+        XCTAssertTrue(Actions.isArrived(planned, in: saved))
+        XCTAssertEqual(Actions.punctuality(of: saved[0], in: shown), "10 min de retard")
+        let recap = Recap.build(shown, on: day, now: now, calendar: cal)
+        XCTAssertEqual(recap.appointments.first?.status, .honored("10 min de retard"))
+        // si le calendrier est désactivé plus tard, le lien reste sans effet mais ne casse rien
+        XCTAssertNil(Actions.punctuality(of: saved[0], in: saved))
+    }
 }

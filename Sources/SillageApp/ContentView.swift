@@ -11,13 +11,16 @@ struct ContentView: View {
                 .navigationSplitViewColumnWidth(min: 250, ideal: 280, max: 340)
                 .sheet(isPresented: $model.showBackup) { BackupSheet() }
         } detail: {
-            switch model.viewMode {
-            case .day: TimelineView()
-            case .week: WeekView()
-            case .month: MonthView()
-            case .tasks: TasksView()
-            case .recap: RecapView()
+            Group {
+                switch model.viewMode {
+                case .day: TimelineView()
+                case .week: WeekView()
+                case .month: MonthView()
+                case .tasks: TasksView()
+                case .recap: RecapView()
+                }
             }
+            .sheet(isPresented: $model.showCalendars) { CalendarsSheet() }
         }
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {

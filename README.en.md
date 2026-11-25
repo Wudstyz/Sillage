@@ -46,6 +46,17 @@ Your day told hour by hour, with the **gaps** (“Non renseigné”, not filled 
 
 The recap is not a step you must validate: it is **computed continuously** from your data. It is there for today, live, as for any past day. There is **no “End the day” button**: if you go to bed at 9 PM and stop a task the next morning, nothing breaks.
 
+### Your Mac and Google calendars (optional)
+<img src="docs/screenshots/08-calendriers.png" width="560" alt="Mac and Google calendars window">
+
+If your appointments already live in your Mac's **Calendar** app (iCloud, Google, Exchange…), Sillage can show them in the **Prévu** (Planned) lane, with a small calendar icon, so you can compare planned and actual without retyping anything. **It's an option, off by default**: open it with **⇧⌘K** (or the “Calendriers Mac et Google” line at the bottom of the sidebar), switch it on and accept macOS's permission prompt.
+
+- **Read-only**: Sillage writes nothing into your calendars and copies nothing into its data (nor into backups or exports). These appointments can't be moved or deleted from Sillage; “Ouvrir Calendrier” opens them in the Calendar app.
+- **“J'y suis”** (I'm here) works on them like on your own appointments: the real activity starts, the timeline shows the delay, and the recap counts them (“Honoré · 10 min de retard”).
+- **You choose which calendars** to show. Declined or cancelled events are hidden, and so are “all-day” ones (a checkbox shows them).
+- **Google**: add your account in *System Settings → Internet Accounts → Google* keeping “Calendars” ticked; its calendars then appear in the list.
+- Reminders stay those of the Calendar app: Sillage adds none for these appointments.
+
 ### In the menu bar
 <img src="docs/screenshots/06-barre-de-menus.png" width="330" alt="Menu bar panel">
 
@@ -73,6 +84,7 @@ Sillage **doesn't guess anything**: a task keeps running until you stop it, even
 | Say I've arrived | Right-click the appointment → **J'y suis**: the real task starts and the timeline shows how early or late you were |
 | Repeat it (physio every Wednesday, rent every month…) | Sheet → **Répéter** (Repeat): day, week (chosen weekdays), month, year; “every N”; “until”. Each occurrence stays individually editable, movable and honorable; series are extended one year ahead |
 | Delete a series | Open an occurrence → **Supprimer** (Delete) → “this occurrence only” or “this and following” (what was already lived is kept) |
+| See my Calendar / Google appointments | **⇧⌘K** → turn on “Afficher mes calendriers” (optional, read-only) |
 | Be warned | Sheet → **Rappel** (Reminder): at start, 5 min, 15 min, 1 h, 1 day before: macOS notification, even with the window closed |
 
 ### View and fix
@@ -118,7 +130,7 @@ The core (`SillageCore`: model, time calculations, series, reports, recap, histo
 
 ## Ideas for later
 
-- Reading your existing calendars (Calendar, Google…) to fill the “Planned” lane automatically
+- Writing a Sillage appointment into a calendar (today, reading is read-only)
 - iCal export
 - Custom categories and shortcuts
 - Settings window and launch at login
