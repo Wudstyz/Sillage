@@ -84,10 +84,20 @@ Sillage **doesn't guess anything**: a task keeps running until you stop it, even
 | Fix a time | Click the block (or the session in the Tasks view, or the recap row) |
 | See the summary by category or by task | Sidebar: **Catégories / Tâches**; it follows the displayed period |
 | Undo a mistake | **⌘Z** undoes the last change (create, move, delete, stop…), **⇧⌘Z** redoes it |
+| Back up, export or restore my data | **⇧⌘B** (or the “Copie de secours à…” line at the bottom of the sidebar): see [Your data](#your-data) |
 
 ## Your data
 
-It lives in `~/Library/Application Support/Sillage/data.json` (readable JSON, atomic writes). One copy per day is kept in `Sauvegardes/` (14 days). If the file ever becomes unreadable it is set aside (`data.corrompu-…`) and never overwritten. Nothing leaves your Mac.
+It lives in `~/Library/Application Support/Sillage/data.json` (readable JSON). Every change is written immediately and atomically: a crash mid-write can't corrupt the file. If the file ever becomes unreadable it is set aside (`data.corrompu-…`) and never overwritten. Nothing leaves your Mac, unless you yourself pick a copy folder.
+
+<img src="docs/screenshots/07-sauvegarde.png" width="560" alt="Backup and export window">
+
+**⇧⌘B** opens the **Sauvegarde et export** (Backup and export) window:
+
+- **Automatic safety copies**: every 10 minutes when something changes (the last 48 are kept), plus one per day for 14 days, plus a last one when the app quits. An incident costs you a few minutes at most. Copies are in `Sauvegardes/`. An unreadable or empty file is never copied.
+- **Copy to a folder of your choice** (iCloud Drive, external disk…): one file per day, 30 days kept, updated automatically; if the disk is unplugged, copying resumes as soon as it's back.
+- **Export**: a **full backup** (`.json`) or a **CSV** of the whole history or of the displayed period, for Excel or Numbers.
+- **Restore** from a full backup or an automatic copy: a confirmation is asked, the current state is kept first (`Sauvegardes/Avant-restauration/`), and **⌘Z** undoes the restore.
 
 ## Install
 
@@ -108,7 +118,8 @@ The core (`SillageCore`: model, time calculations, series, reports, recap, histo
 
 ## Ideas for later
 
-- Export / import (JSON, CSV, iCal) and reading your existing calendars
+- Reading your existing calendars (Calendar, Google…) to fill the “Planned” lane automatically
+- iCal export
 - Custom categories and shortcuts
 - Settings window and launch at login
 - Global keyboard shortcut to start / stop a task

@@ -510,4 +510,107 @@ final class SillageCoreTests: XCTestCase {
         XCTAssertEqual(r.segments.map(\.isLive), [false, true])         // 14–15 est terminé ; 15–18 continue
         XCTAssertTrue(r.segments[0].isRunning)                           // mais Sillage y tournait bel et bien
     }
+
+    // MARK: Sauvegardes et export
+
+    private func tempDir() -> URL {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("sillage-\(UUID())")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    func testRollingSnapshotsAreThrottledDedupedAndPruned() throws {
+        let dir = tempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = Store(url: dir.appendingPathComponent("data.json"))
+        XCTAssertNil(store.snapshotIfNeeded(now: at(9)))                         // pas de fichier : rien à copier
+        try store.save([entry("a", at(9), at(10))])
+        let first = store.snapshotIfNeeded(now: at(9))
+        XCTAssertNotNil(first)
+        XCTAssertNil(store.snapshotIfNeeded(now: at(9, 5)))                      // même contenu : pas de doublon
+        try store.save([entry("a", at(9), at(10)), entry("b", at(10), at(11))])
+        XCTAssertNil(store.snapshotIfNeeded(now: at(9, 5)))                      // modifié, mais moins de 10 min après
+        XCTAssertNotNil(store.snapshotIfNeeded(now: at(9, 12)))                  // 10 min passées
+        XCTAssertEqual(store.latestSnapshotDate(), at(9, 12))
+        // « force » (fermeture de l'app) ignore le délai
+        try store.save([entry("c", at(11), at(12))])
+        XCTAssertNotNil(store.snapshotIfNeeded(now: at(9, 13), force: true))
+        // élagage : on ne garde que les `keep` dernières
+        for i in 0..<5 {
+            try store.save([entry("n\(i)", at(12 + i), at(13 + i))])
+            _ = store.snapshotIfNeeded(now: at(10 + i), minInterval: 0, keep: 3, force: true)
+        }
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: store.snapshotsDirectory.path).count, 3)
+    }
+
+    func testSnapshotsNeverCopyUnreadableOrEmptyData() throws {
+        let dir = tempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = Store(url: dir.appendingPathComponent("data.json"))
+        try store.save([entry("a", at(9), at(10))])
+        XCTAssertNotNil(store.snapshotIfNeeded(now: at(9)))
+        try Data("{ cassé".utf8).write(to: store.url)
+        XCTAssertNil(store.snapshotIfNeeded(now: at(12), force: true))           // illisible : jamais copié
+        try store.save([])
+        XCTAssertNil(store.snapshotIfNeeded(now: at(13), force: true))           // vide : n'écrase pas la mémoire des bonnes copies
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: store.snapshotsDirectory.path).count, 1)
+    }
+
+    func testMirrorToUserFolder() throws {
+        let dir = tempDir(), mirror = tempDir()
+        defer { try? FileManager.default.removeItem(at: dir); try? FileManager.default.removeItem(at: mirror) }
+        let store = Store(url: dir.appendingPathComponent("data.json"))
+        try store.save([entry("a", at(9), at(10))])
+        let copy = try XCTUnwrap(store.mirror(to: mirror, now: at(9)))
+        XCTAssertTrue(copy.lastPathComponent.hasPrefix("Sillage-sauvegarde-"))
+        XCTAssertEqual(Store.readBackup(at: copy)?.entries.count, 1)
+        // dossier absent (disque débranché) : rien n'est créé
+        let missing = dir.appendingPathComponent("disque-debranche")
+        XCTAssertNil(store.mirror(to: missing))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: missing.path))
+        // un fichier par jour, 30 jours gardés
+        for d in 1...35 { _ = store.mirror(to: mirror, now: at(9).addingTimeInterval(Double(d) * 86400)) }
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: mirror.path).count, 30)
+    }
+
+    func testExportAndReadBackup() throws {
+        let dir = tempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+        let (s, first) = Series.make(from: rdv(d(2026, 11, 2)), rule: Recurrence(frequency: .weekly), calendar: fixed)
+        let file = dir.appendingPathComponent("export.json")
+        try Store.export(entries: [first, entry("a", at(9), at(10))], series: [s], to: file)
+        let back = try XCTUnwrap(Store.readBackup(at: file))
+        XCTAssertEqual(back.entries.count, 2); XCTAssertEqual(back.series, [s])
+        // un fichier quelconque n'est pas une sauvegarde
+        let other = dir.appendingPathComponent("autre.json")
+        try Data(#"{"foo": 1}"#.utf8).write(to: other)
+        XCTAssertNil(Store.readBackup(at: other))
+        XCTAssertNil(Store.readBackup(at: dir.appendingPathComponent("inexistant.json")))
+    }
+
+    func testCSVExport() {
+        let now = at(18)
+        let list = [
+            entry("Réunion; \"client\"", at(10), at(11, 30), .actual, "Travail"),
+            Entry(title: "Médecin", category: "Santé", kind: .planned, start: at(9), end: at(10)),
+            entry("Sillage", at(14), nil, .actual, "Loisirs"),
+        ]
+        let csv = CSVExport.csv(list, now: now, calendar: cal)
+        XCTAssertTrue(csv.hasPrefix("\u{FEFF}Type;Titre;Catégorie;Début;Fin;Durée (min);Durée (h:mm);En cours\r\n"))
+        let lines = csv.components(separatedBy: "\r\n").filter { !$0.isEmpty }
+        XCTAssertEqual(lines.count, 4)
+        XCTAssertTrue(lines[1].hasPrefix("Prévu;Médecin;Santé;2026-11-25 09:00;2026-11-25 10:00;60;1:00;non"))   // triées par début
+        XCTAssertTrue(lines[2].contains("\"Réunion; \"\"client\"\"\""))                                       // échappement
+        XCTAssertTrue(lines[2].hasSuffix("90;1:30;non"))
+        XCTAssertTrue(lines[3].hasSuffix(";240;4:00;oui"))                                                      // en cours : jusqu'à maintenant
+        // une période : seulement ce qui la touche
+        let onlyMorning = CSVExport.csv(list, now: now, from: at(0), to: at(10), calendar: cal)
+        XCTAssertEqual(onlyMorning.components(separatedBy: "\r\n").filter { !$0.isEmpty }.count, 2)           // en-tête + Médecin
+    }
+
+    func testKeepCopyBeforeRestore() throws {
+        let dir = tempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+        let store = Store(url: dir.appendingPathComponent("data.json"))
+        XCTAssertNil(store.keepCopyBeforeRestore(now: at(9)))                    // rien à garder
+        try Data("{ même illisible".utf8).write(to: store.url)
+        let copy = try XCTUnwrap(store.keepCopyBeforeRestore(now: at(9)))
+        XCTAssertEqual(try String(contentsOf: copy), "{ même illisible")
+    }
 }

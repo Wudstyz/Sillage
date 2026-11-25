@@ -39,6 +39,13 @@ final class AppModel: ObservableObject {
     }
     /// Tâche affichée en détail dans la vue Tâches (clé de regroupement).
     @Published var selectedTask: String?
+    /// Fenêtre « Sauvegarde et export ».
+    @Published var showBackup = false
+    /// Dernière copie de secours continue (heure).
+    @Published var lastBackup: Date?
+    /// Dossier choisi pour une copie automatique quotidienne (iCloud Drive, disque externe…).
+    @Published var backupFolder: String?
+    @Published var backupFolderNote: String?
     @Published var canUndo = false
     @Published var canRedo = false
     @Published var now = Date()
@@ -48,7 +55,10 @@ final class AppModel: ObservableObject {
     /// Message affiché si le fichier de données était illisible au lancement.
     @Published var loadWarning: String?
 
+    static weak var current: AppModel?
     private let store: Store
+    /// SILLAGE_BACKUP_DIR : dossier de copie alternatif (tests) ; il n'est alors pas mémorisé.
+    private static let backupFolderEnv = ProcessInfo.processInfo.environment["SILLAGE_BACKUP_DIR"]
     private var timer: Timer?
     private let notifier = Notifier()
     private var history = UndoStack<Snapshot>()
@@ -66,7 +76,16 @@ final class AppModel: ObservableObject {
         if let aside = loaded.quarantinedAt {
             loadWarning = "Le fichier de données était illisible. Il a été conservé tel quel (\(aside.lastPathComponent), dans \(aside.deletingLastPathComponent().path)) et Sillage repart d'une journée vide."
         }
+        AppModel.current = self
+        lastBackup = store.latestSnapshotDate()
+        backupFolder = Self.backupFolderEnv ?? UserDefaults.standard.string(forKey: "backupFolder")
         if Series.topUp(&series, entries: &entries, now: Date()) { persist() } else { notifier.reschedule(entries, now: Date()) }
+        runBackups(force: false)
+        mirrorToFolder()
+        // SILLAGE_OPEN_BACKUP : ouvre la fenêtre de sauvegarde au lancement (captures d'écran de la documentation).
+        if ProcessInfo.processInfo.environment["SILLAGE_OPEN_BACKUP"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.showBackup = true }
+        }
         timer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
@@ -306,5 +325,78 @@ final class AppModel: ObservableObject {
     private func persist() {
         do { try store.save(entries, series: series) } catch { saveError = error.localizedDescription }
         notifier.reschedule(entries, now: Date())
+        runBackups(force: false)
+    }
+
+    // MARK: Sauvegarde, export, restauration
+
+    var dataFolder: URL { store.url.deletingLastPathComponent() }
+    var backupsFolder: URL { store.backupsDirectory }
+    var snapshotsFolder: URL { store.snapshotsDirectory }
+
+    /// Copie de secours « au fil de la journée » (au plus toutes les 10 min, si quelque chose a changé),
+    /// recopiée dans le dossier choisi s'il y en a un. `force` : tout de suite (fermeture de l'app, bouton).
+    private func runBackups(force: Bool) {
+        if store.snapshotIfNeeded(force: force) != nil {
+            lastBackup = Date()
+            mirrorToFolder()
+        } else if force {
+            mirrorToFolder()
+        }
+    }
+
+    private func mirrorToFolder() {
+        guard let path = backupFolder else { backupFolderNote = nil; return }
+        if store.mirror(to: URL(fileURLWithPath: path)) != nil {
+            backupFolderNote = "Dernière copie à \(Date().formatted(date: .omitted, time: .shortened))."
+        } else {
+            backupFolderNote = "Dossier introuvable ou inaccessible (disque débranché ?). La copie reprendra dès qu'il sera de nouveau disponible."
+        }
+    }
+
+    /// Appelé à la fermeture de l'app et par le bouton « Sauvegarder maintenant ».
+    func backupNow() {
+        runBackups(force: true)
+        if lastBackup == nil { lastBackup = store.latestSnapshotDate() }
+    }
+
+    func setBackupFolder(_ url: URL) {
+        backupFolder = url.path
+        if Self.backupFolderEnv == nil { UserDefaults.standard.set(url.path, forKey: "backupFolder") }
+        mirrorToFolder()
+    }
+
+    func clearBackupFolder() {
+        backupFolder = nil
+        backupFolderNote = nil
+        if Self.backupFolderEnv == nil { UserDefaults.standard.removeObject(forKey: "backupFolder") }
+    }
+
+    func exportFull(to url: URL) throws { try Store.export(entries: entries, series: series, to: url) }
+
+    /// CSV de tout l'historique, ou de la période affichée.
+    func exportCSV(to url: URL, periodOnly: Bool) throws {
+        let days = periodDays
+        let from = periodOnly ? days.min().map { Calendar.current.startOfDay(for: $0) } : nil
+        let to = periodOnly ? days.max().flatMap { Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: $0)) } : nil
+        let text = CSVExport.csv(entries, now: Date(), from: from, to: to)
+        try text.write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    /// Nombre d'entrées et de séries d'un fichier de sauvegarde, `nil` s'il n'est pas valide.
+    func backupInfo(at url: URL) -> (entries: Int, series: Int)? {
+        Store.readBackup(at: url).map { ($0.entries.count, $0.series.count) }
+    }
+
+    /// Remplace les données par celles d'une sauvegarde. L'état actuel est d'abord gardé dans
+    /// `Sauvegardes/Avant-restauration/`, et ⌘Z annule la restauration.
+    func restore(from url: URL) -> Bool {
+        guard let backup = Store.readBackup(at: url) else { return false }
+        store.keepCopyBeforeRestore()
+        commit {
+            entries = backup.entries
+            series = backup.series
+        }
+        return true
     }
 }

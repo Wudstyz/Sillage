@@ -84,10 +84,20 @@ Sillage **ne devine rien** : une tâche continue tant que vous ne l'arrêtez pas
 | Corriger une heure | Clic sur le bloc (ou sur la séance dans la vue Tâches, ou sur la ligne du récap) |
 | Voir le bilan par catégorie ou par tâche | Barre latérale : **Catégories / Tâches** ; il suit la période affichée |
 | Annuler une erreur | **⌘Z** annule la dernière modification (créer, déplacer, supprimer, terminer…), **⇧⌘Z** la rétablit |
+| Sauvegarder, exporter ou restaurer mes données | **⇧⌘B** (ou la ligne « Copie de secours à… » en bas de la barre latérale) : voir [Vos données](#vos-données) |
 
 ## Vos données
 
-Elles sont dans `~/Library/Application Support/Sillage/data.json` (JSON lisible, écriture atomique). Une copie par jour est gardée dans `Sauvegardes/` (14 jours). Si le fichier devenait illisible, il est mis de côté (`data.corrompu-…`) et jamais écrasé. Rien ne quitte votre Mac.
+Elles sont dans `~/Library/Application Support/Sillage/data.json` (JSON lisible). Chaque modification est écrite tout de suite, de façon atomique : un plantage en pleine écriture ne corrompt pas le fichier. Si le fichier devenait illisible, il est mis de côté (`data.corrompu-…`) et jamais écrasé. Rien ne quitte votre Mac, sauf si vous choisissez vous-même un dossier de copie.
+
+<img src="docs/screenshots/07-sauvegarde.png" width="560" alt="Fenêtre Sauvegarde et export">
+
+**⇧⌘B** ouvre la fenêtre **Sauvegarde et export** :
+
+- **Copies de secours automatiques** : toutes les 10 minutes quand quelque chose change (les 48 dernières sont gardées), plus une par jour pendant 14 jours, plus une dernière à la fermeture de l'app. Un incident ne vous coûte donc que quelques minutes. Les copies sont dans `Sauvegardes/`. Un fichier illisible ou vide n'est jamais copié.
+- **Copie dans un dossier de votre choix** (iCloud Drive, disque externe…) : un fichier par jour, 30 jours gardés, mis à jour automatiquement ; si le disque est débranché, la copie reprend dès qu'il revient.
+- **Exporter** : une **sauvegarde complète** (`.json`) ou un **CSV** de tout l'historique ou de la période affichée, pour Excel ou Numbers.
+- **Restaurer** depuis une sauvegarde complète ou une copie automatique : une confirmation est demandée, l'état actuel est gardé avant (`Sauvegardes/Avant-restauration/`), et **⌘Z** annule la restauration.
 
 ## Installation
 
@@ -108,7 +118,8 @@ Le cœur (`SillageCore` : modèle, calculs du temps, séries, rapports, récap, 
 
 ## Idées pour la suite
 
-- Export / import (JSON, CSV, iCal) et lecture de vos calendriers existants
+- Lecture de vos calendriers existants (Calendrier, Google…) pour remplir le « Prévu » automatiquement
+- Export iCal
 - Catégories et raccourcis personnalisés
 - Fenêtre de réglages et lancement à la connexion
 - Raccourci clavier global pour démarrer / terminer une tâche

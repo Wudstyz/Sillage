@@ -1,11 +1,17 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.appearance = NSAppearance(named: .aqua)
     }
     /// L'app reste active dans la barre de menus quand la fenêtre est fermée.
+    /// À la fermeture : une dernière copie de secours de l'état exact.
+    func applicationWillTerminate(_ notification: Notification) {
+        AppModel.current?.backupNow()
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 }
 
@@ -43,6 +49,9 @@ struct SillageApp: App {
                 // Dans un champ de texte, ⌘Z annule la frappe ; ailleurs, il annule la dernière modification de Sillage.
                 Button("Annuler") { performUndo(redo: false) }.keyboardShortcut("z")
                 Button("Rétablir") { performUndo(redo: true) }.keyboardShortcut("z", modifiers: [.command, .shift])
+            }
+            CommandMenu("Sauvegarde") {
+                Button("Sauvegarde et export…") { model.showBackup = true }.keyboardShortcut("b", modifiers: [.command, .shift])
             }
             CommandMenu("Journée") {
                 Button("Période précédente") { model.navigate(-1) }.keyboardShortcut(.leftArrow, modifiers: .command)

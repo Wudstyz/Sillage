@@ -9,6 +9,7 @@ struct ContentView: View {
         NavigationSplitView {
             Sidebar()
                 .navigationSplitViewColumnWidth(min: 250, ideal: 280, max: 340)
+                .sheet(isPresented: $model.showBackup) { BackupSheet() }
         } detail: {
             switch model.viewMode {
             case .day: TimelineView()

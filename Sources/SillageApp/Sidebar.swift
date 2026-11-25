@@ -17,6 +17,7 @@ struct Sidebar: View {
                 recentsSection
                 shortcutsSection
                 bilanSection
+                backupFooter
             }
             .padding(16)
         }
@@ -127,6 +128,26 @@ struct Sidebar: View {
             }
             .card()
         }
+    }
+
+    // MARK: Sauvegarde
+
+    private var backupFooter: some View {
+        Button { model.showBackup = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "externaldrive.badge.checkmark").foregroundStyle(Theme.color(for: "Loisirs"))
+                Text(model.lastBackup.map { "Copie de secours à \($0.formatted(date: .omitted, time: .shortened))" }
+                     ?? "Sauvegarde et export…")
+                    .font(Theme.rounded(12, .medium)).foregroundStyle(Theme.muted)
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(Theme.muted)
+            }
+            .padding(.vertical, 8).padding(.horizontal, 10)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.ink.opacity(0.04)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Sauvegarde automatique, export et restauration (⇧⌘B)")
     }
 
     // MARK: Récents
