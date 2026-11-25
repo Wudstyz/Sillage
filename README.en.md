@@ -16,6 +16,8 @@
 
 <img src="docs/screenshots/02-semaine.png" width="374" alt="Week view"> <img src="docs/screenshots/03-mois.png" width="374" alt="Month view">
 
+<img src="docs/screenshots/04-taches.png" width="760" alt="Tasks view: time spent per task, chart and sessions">
+
 </div>
 
 Sillage is a free, open-source Mac app that combines a **calendar** with a **log of your day**.
@@ -47,6 +49,9 @@ Everything stays **on your Mac**: no account, no network, no data sent anywhere.
 | Change its duration | **Stretch** the bottom edge of the block |
 | Fix a forgotten time | Click the block on the timeline |
 | Act without opening the window | **Menu bar**: the running task and its timer are shown there; the panel shows the next appointment (with **J'y suis**), lets you stop a task, start one or use a shortcut. Closing the window keeps Sillage running; **Quitter** (Quit) stops it |
+| Know how long I spent on a task | **Tâches** (Tasks) view (⌘4): pick **Jour / Semaine / Mois / Tout** (Day / Week / Month / All time). The list ranks your tasks (“SFCO”, “Sillage”…; identical titles are grouped); click one to see its **total, sessions, active days, daily average**, a **chart** per day (or per week / month over a long period) and the list of its sessions. In the sidebar, the summary switches between **Catégories** (Categories) and **Tâches** (Tasks) |
+| Resume a task I already did | **Récents** (Recent) section of the sidebar (and of the menu-bar panel): one click restarts it with its category |
+| Undo a mistake | **⌘Z** undoes the last change (create, move, delete, stop…), **⇧⌘Z** redoes it |
 | Change view | **Day / Week / Month** (selector top right, ⌘1 ⌘2 ⌘3). **Week** shows seven days side by side, planned dashed and actual solid; **month** shows one cell per day with its appointments and a **colour bar** of the time actually spent. Click a day to open it. The sidebar summary follows the displayed period |
 | Navigate | ‹ › or ⌘← ⌘→ (one day, week or month depending on the view); today: ⌘T |
 

@@ -14,6 +14,7 @@ struct ContentView: View {
             case .day: TimelineView()
             case .week: WeekView()
             case .month: MonthView()
+            case .tasks: TasksView()
             }
         }
         .toolbar {

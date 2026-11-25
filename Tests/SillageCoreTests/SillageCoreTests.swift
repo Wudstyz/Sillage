@@ -335,4 +335,111 @@ final class SillageCoreTests: XCTestCase {
         let plannedOnly = [entry("a", at(9), at(11), .planned), entry("b", at(10), at(12), .actual)]
         XCTAssertFalse(DayLogic.hasSimultaneous(plannedOnly, on: day, now: now, calendar: cal))   // prévu et réel ne comptent pas
     }
+
+    // MARK: Bilan par tâche, récents, annuler
+
+    func testTaskTotalsGroupByTitleCaseAndSpaces() {
+        let now = at(18)
+        let list = [
+            entry("SFCO", at(9), at(11), .actual, "Travail"),
+            entry("sfco ", at(11), at(12), .actual, "Travail"),           // même tâche : casse et espace ignorés
+            entry("Sillage", at(10), at(12), .actual, "Loisirs"),
+        ]
+        let t = DayLogic.taskTotals(list, on: day, now: now, calendar: cal)
+        XCTAssertEqual(t.count, 2)
+        XCTAssertEqual(t[0].title, "SFCO")                                  // la graphie la plus utilisée (2 h contre 1 h)
+        XCTAssertEqual(t[0].duration, 7200)                                  // 9–10 seul (1 h) + 10–12 partagé avec Sillage (2 × 30 min)
+        XCTAssertEqual(t[1].duration, 3600)                                  // 10–12 : la moitié de 2 h
+        XCTAssertEqual(t.reduce(0.0) { $0 + $1.duration }, 10800)           // 3 h : le temps écoulé de 9 h à 12 h
+    }
+
+    func testTaskTotalsExactNumbers() {
+        let now = at(18)
+        let list = [entry("SFCO", at(9), at(12), .actual, "Travail"), entry("Sillage", at(10), at(12), .actual, "Loisirs")]
+        let t = DayLogic.taskTotals(list, on: day, now: now, calendar: cal)
+        XCTAssertEqual(t[0].title, "SFCO"); XCTAssertEqual(t[0].duration, 3600 + 3600)      // 1 h seul + moitié de 2 h
+        XCTAssertEqual(t[1].title, "Sillage"); XCTAssertEqual(t[1].duration, 3600)          // moitié de 2 h
+        XCTAssertEqual(t[0].category, "Travail")
+    }
+
+    func testRecentsAreDistinctAndSkipPresetsAndRunning() {
+        let now = at(20)
+        let list = [
+            entry("SFCO", at(8), at(9), .actual, "Travail"),
+            entry("Douche", at(9), at(10), .actual, "Hygiène"),             // déjà un raccourci
+            entry("Sillage", at(10), at(11), .actual, "Loisirs"),
+            entry("sfco", at(12), at(13), .actual, "Travail"),              // doublon de SFCO, plus récent
+            entry("Facture", at(14), nil, .actual, "Travail"),              // en cours : exclue
+            entry("Médecin", at(15), at(16), .planned, "Santé"),            // prévu : exclu
+        ]
+        let r = Recents.recent(list, now: now)
+        XCTAssertEqual(r.map(\.title), ["sfco", "Sillage"])                 // la plus récente d'abord, sans doublon
+        XCTAssertEqual(Recents.recent(list, limit: 1, now: now).count, 1)
+    }
+
+    func testUndoStack() {
+        var stack = UndoStack<Int>(limit: 3)
+        XCTAssertFalse(stack.canUndo)
+        var state = 0
+        for next in 1...4 { stack.record(state); state = next }            // 0→1→2→3→4 ; limite 3 : 0 oublié
+        XCTAssertEqual(stack.undo(current: state), 3); state = 3
+        XCTAssertEqual(stack.undo(current: state), 2); state = 2
+        XCTAssertTrue(stack.canRedo)
+        XCTAssertEqual(stack.redo(current: state), 3); state = 3
+        stack.record(state); state = 9                                      // nouvelle modification : le « rétablir » disparaît
+        XCTAssertFalse(stack.canRedo)
+        XCTAssertEqual(stack.undo(current: state), 3)
+        XCTAssertEqual(stack.undo(current: 3), 2)
+        XCTAssertEqual(stack.undo(current: 2), 1)
+        XCTAssertNil(stack.undo(current: 1))                                // 0 a été oublié (limite 3)
+    }
+
+    // MARK: Rapports par période
+
+    func testReportDaysForPeriods() {
+        let anchor = d(2026, 11, 25)
+        let now = d(2026, 11, 25, 18)
+        XCTAssertEqual(Reports.days(for: .day, anchor: anchor, entries: [], now: now, calendar: fixed), [d(2026, 11, 25, 0)])
+        XCTAssertEqual(Reports.days(for: .week, anchor: anchor, entries: [], now: now, calendar: fixed).count, 7)
+        let month = Reports.days(for: .month, anchor: anchor, entries: [], now: now, calendar: fixed)
+        XCTAssertEqual(month.count, 30); XCTAssertEqual(month.first, d(2026, 11, 1, 0)); XCTAssertEqual(month.last, d(2026, 11, 30, 0))
+        // tout : de la première entrée réelle à aujourd'hui
+        let old = Entry(title: "x", category: "Autre", kind: .actual, start: d(2026, 11, 20, 8), end: d(2026, 11, 20, 9))
+        let all = Reports.days(for: .all, anchor: anchor, entries: [old], now: now, calendar: fixed)
+        XCTAssertEqual(all.count, 6); XCTAssertEqual(all.first, d(2026, 11, 20, 0)); XCTAssertEqual(all.last, d(2026, 11, 25, 0))
+        XCTAssertEqual(Reports.days(for: .all, anchor: anchor, entries: [], now: now, calendar: fixed).count, 1)   // rien : aujourd'hui
+    }
+
+    func testTaskSummaryAcrossDays() {
+        let now = d(2026, 11, 26, 18)
+        func e(_ title: String, _ day: Int, _ h1: Int, _ h2: Int, _ cat: String = "Travail") -> Entry {
+            Entry(title: title, category: cat, kind: .actual, start: d(2026, 11, day, h1), end: d(2026, 11, day, h2))
+        }
+        let list = [e("SFCO", 24, 9, 12), e("sfco", 25, 14, 16), e("SFCO", 25, 16, 17), e("Sillage", 25, 14, 16, "Loisirs"),
+                    Entry(title: "SFCO", category: "Travail", kind: .planned, start: d(2026, 11, 26, 9), end: d(2026, 11, 26, 10))]
+        let days = Reports.days(for: .all, anchor: now, entries: list, now: now, calendar: fixed)
+        let s = Reports.summaries(list, days: days, now: now, calendar: fixed)
+        XCTAssertEqual(s.map(\.key), ["sfco", "sillage"])
+        let sfco = s[0]
+        let h: TimeInterval = 3600
+        let day24: TimeInterval = 3 * h                                       // 9 h–12 h, seul
+        let day25: TimeInterval = 2 * h                                       // 14–16 partagé avec Sillage (1 h) + 16–17 (1 h)
+        XCTAssertEqual(sfco.total, day24 + day25)
+        XCTAssertEqual(sfco.sessions, 3); XCTAssertEqual(sfco.activeDays, 2)
+        XCTAssertEqual(sfco.perDay.map(\.duration), [day24, day25])
+        XCTAssertEqual(sfco.averagePerActiveDay, 2.5 * h)
+        XCTAssertEqual(sfco.first, d(2026, 11, 24, 9)); XCTAssertEqual(sfco.last, d(2026, 11, 25, 17))
+        XCTAssertEqual(s[1].total, h)                                         // moitié de 14–16
+        // la période limite le calcul : seulement le 25
+        let only25 = Reports.summaries(list, days: [d(2026, 11, 25, 0)], now: now, calendar: fixed)
+        XCTAssertEqual(only25.first { $0.key == "sfco" }?.total, day25)
+        XCTAssertEqual(Reports.sessions(of: "sfco", in: list, days: days, calendar: fixed).count, 3)
+        XCTAssertEqual(Reports.sessions(of: "sfco", in: list, days: [d(2026, 11, 25, 0)], calendar: fixed).first?.start, d(2026, 11, 25, 16))
+    }
+
+    func testRecentsUseTheMostUsedSpelling() {
+        let now = at(20)
+        let list = [entry("SFCO", at(8), at(9), .actual), entry("SFCO", at(9), at(10), .actual), entry("sfco", at(11), at(12), .actual)]
+        XCTAssertEqual(Recents.recent(list, now: now).map(\.title), ["SFCO"])     // 2 contre 1, même si la dernière était en minuscules
+    }
 }

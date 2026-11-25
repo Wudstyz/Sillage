@@ -80,6 +80,18 @@ struct MenuBarPanel: View {
                         .buttonStyle(AccentButtonStyle())
                         .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
+                if !model.recents.isEmpty {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
+                        ForEach(Array(model.recents.prefix(4)), id: \.title) { r in
+                            Button { model.start(title: r.title, category: r.category) } label: {
+                                Label(r.title, systemImage: "arrow.counterclockwise").font(.caption).lineLimit(1)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(ChipButtonStyle(category: r.category))
+                            .help("Reprendre « \(r.title) »")
+                        }
+                    }
+                }
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
                     ForEach(Preset.defaults, id: \.title) { p in
                         Button { model.start(title: p.title, category: p.category) } label: {

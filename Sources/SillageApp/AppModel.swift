@@ -3,9 +3,23 @@ import SwiftUI
 import SillageCore
 
 enum ViewMode: String, CaseIterable, Identifiable {
-    case day, week, month
+    case day, week, month, tasks
     var id: String { rawValue }
-    var label: String { switch self { case .day: return "Jour"; case .week: return "Semaine"; case .month: return "Mois" } }
+    var label: String {
+        switch self { case .day: return "Jour"; case .week: return "Semaine"; case .month: return "Mois"; case .tasks: return "Tâches" }
+    }
+}
+
+extension ReportPeriod {
+    var label: String {
+        switch self { case .day: return "Jour"; case .week: return "Semaine"; case .month: return "Mois"; case .all: return "Tout" }
+    }
+}
+
+/// État sauvegardé pour annuler / rétablir.
+struct Snapshot {
+    var entries: [Entry]
+    var series: [Series]
 }
 
 @MainActor
@@ -16,6 +30,14 @@ final class AppModel: ObservableObject {
     @Published var viewMode: ViewMode = .day {
         didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: "viewMode") }
     }
+    /// Période du rapport de la vue Tâches (jour, semaine, mois, tout).
+    @Published var reportPeriod: ReportPeriod = .month {
+        didSet { UserDefaults.standard.set(reportPeriod.rawValue, forKey: "reportPeriod") }
+    }
+    /// Tâche affichée en détail dans la vue Tâches (clé de regroupement).
+    @Published var selectedTask: String?
+    @Published var canUndo = false
+    @Published var canRedo = false
     @Published var now = Date()
     /// Entrée en cours d'édition dans la feuille modale (nouvelle ou existante).
     @Published var editor: EditorTarget?
@@ -26,12 +48,15 @@ final class AppModel: ObservableObject {
     private let store: Store
     private var timer: Timer?
     private let notifier = Notifier()
+    private var history = UndoStack<Snapshot>()
 
     init(store: Store = .default) {
         self.store = store
         // SILLAGE_VIEW : vue affichée au lancement (captures d'écran de la documentation).
         let saved = ProcessInfo.processInfo.environment["SILLAGE_VIEW"] ?? UserDefaults.standard.string(forKey: "viewMode")
         viewMode = ViewMode(rawValue: saved ?? "") ?? .day
+        reportPeriod = ReportPeriod(rawValue: ProcessInfo.processInfo.environment["SILLAGE_PERIOD"]
+                                    ?? UserDefaults.standard.string(forKey: "reportPeriod") ?? "") ?? .month
         let loaded = store.load()
         entries = loaded.entries
         series = loaded.series
@@ -61,22 +86,37 @@ final class AppModel: ObservableObject {
 
     func shift(days: Int) { day = Calendar.current.date(byAdding: .day, value: days, to: day) ?? day }
 
-    /// Période précédente (-1) ou suivante (+1) selon la vue : un jour, une semaine ou un mois.
-    func navigate(_ direction: Int) {
+    /// Période effectivement affichée : celle de la vue Jour / Semaine / Mois, ou celle choisie dans la vue Tâches.
+    var effectivePeriod: ReportPeriod {
         switch viewMode {
+        case .day: return .day
+        case .week: return .week
+        case .month: return .month
+        case .tasks: return reportPeriod
+        }
+    }
+
+    /// Les jours de la période affichée.
+    var periodDays: [Date] { Reports.days(for: effectivePeriod, anchor: day, entries: entries, now: now) }
+
+    /// Période précédente (-1) ou suivante (+1) : un jour, une semaine ou un mois (rien pour « tout »).
+    func navigate(_ direction: Int) {
+        switch effectivePeriod {
         case .day: shift(days: direction)
         case .week: shift(days: 7 * direction)
         case .month: day = Calendar.current.date(byAdding: .month, value: direction, to: day) ?? day
+        case .all: break
         }
     }
 
     /// Le jour affiché est-il dans la période en cours (aujourd'hui, cette semaine, ce mois) ?
     var isCurrentPeriod: Bool {
         let cal = Calendar.current
-        switch viewMode {
+        switch effectivePeriod {
         case .day: return cal.isDateInToday(day)
         case .week: return cal.isDate(day, equalTo: Date(), toGranularity: .weekOfYear)
         case .month: return cal.isDate(day, equalTo: Date(), toGranularity: .month)
+        case .all: return true
         }
     }
 
@@ -86,48 +126,59 @@ final class AppModel: ObservableObject {
         viewMode = .day
     }
 
+    /// Ouvre une tâche en détail dans la vue Tâches.
+    func openTask(_ title: String) {
+        selectedTask = DayLogic.taskKey(title)
+        viewMode = .tasks
+    }
+
     var periodTitle: String {
-        switch viewMode {
-        case .day: return day.formatted(.dateTime.weekday(.wide).day().month(.wide).year()).capitalized
+        let base: String
+        switch effectivePeriod {
+        case .day: base = day.formatted(.dateTime.weekday(.wide).day().month(.wide).year()).capitalized
         case .week:
             // Court, pour ne pas être tronqué par le sélecteur de vue : « 23 – 29 nov. 2026 » ou « 30 nov. – 6 déc. 2026 ».
             let w = CalendarGrid.week(containing: day)
             let sameMonth = Calendar.current.isDate(w[0], equalTo: w[6], toGranularity: .month)
             let start = sameMonth ? w[0].formatted(.dateTime.day()) : w[0].formatted(.dateTime.day().month(.abbreviated))
-            return "\(start) – \(w[6].formatted(.dateTime.day().month(.abbreviated).year()))"
-        case .month: return day.formatted(.dateTime.month(.wide).year()).capitalized
+            base = "\(start) – \(w[6].formatted(.dateTime.day().month(.abbreviated).year()))"
+        case .month: base = day.formatted(.dateTime.month(.wide).year()).capitalized
+        case .all: base = "Tout l'historique"
         }
+        return viewMode == .tasks ? "Tâches · \(base)" : base
     }
 
     var periodBilanTitle: String {
-        switch viewMode { case .day: return "Bilan du jour"; case .week: return "Bilan de la semaine"; case .month: return "Bilan du mois" }
+        switch effectivePeriod {
+        case .day: return "Bilan du jour"
+        case .week: return "Bilan de la semaine"
+        case .month: return "Bilan du mois"
+        case .all: return "Bilan global"
+        }
     }
 
     /// Des tâches se chevauchent-elles sur la période affichée ?
     func periodHasSimultaneous() -> Bool {
-        let cal = Calendar.current
-        let days: [Date]
-        switch viewMode {
-        case .day: days = [day]
-        case .week: days = CalendarGrid.week(containing: day)
-        case .month: days = CalendarGrid.month(containing: day).flatMap { $0 }.filter { cal.isDate($0, equalTo: day, toGranularity: .month) }
-        }
-        return days.contains { DayLogic.hasSimultaneous(entries, on: $0, now: now) }
+        periodDays.contains { DayLogic.hasSimultaneous(entries, on: $0, now: now) }
     }
 
     /// Temps passé par catégorie sur la période affichée.
     func periodTotals() -> [(category: String, duration: TimeInterval)] {
-        let cal = Calendar.current
-        let days: [Date]
-        switch viewMode {
-        case .day: days = [day]
-        case .week: days = CalendarGrid.week(containing: day)
-        case .month: days = CalendarGrid.month(containing: day).flatMap { $0 }.filter { cal.isDate($0, equalTo: day, toGranularity: .month) }
-        }
         var sums: [String: TimeInterval] = [:]
-        for d in days { for t in DayLogic.totals(entries, on: d, now: now) { sums[t.category, default: 0] += t.duration } }
+        for d in periodDays { for t in DayLogic.totals(entries, on: d, now: now) { sums[t.category, default: 0] += t.duration } }
         return sums.map { ($0.key, $0.value) }.sorted { $0.1 > $1.1 }
     }
+
+    /// Rapport par tâche sur la période affichée.
+    func taskSummaries() -> [TaskSummary] { Reports.summaries(entries, days: periodDays, now: now) }
+
+    /// Temps passé par tâche sur la période affichée (pour le bilan de la barre latérale).
+    func periodTaskTotals() -> [(title: String, category: String, duration: TimeInterval)] {
+        taskSummaries().map { ($0.title, $0.category, $0.total) }
+    }
+
+    /// Tâches récentes, relançables en un clic.
+    var recents: [TaskRef] { Recents.recent(entries, now: now) }
 
     // MARK: Actions
 
@@ -140,17 +191,17 @@ final class AppModel: ObservableObject {
         let t = title.trimmingCharacters(in: .whitespaces)
         guard !t.isEmpty else { return }
         now = Date()
-        entries = Actions.startTask(entries, title: t, category: category, now: now,
-                                    stopRunning: stopRunning ?? stopRunningOnStart)
-        persist()
+        commit {
+            entries = Actions.startTask(entries, title: t, category: category, now: now,
+                                        stopRunning: stopRunning ?? stopRunningOnStart)
+        }
     }
 
     /// « J'y suis » : démarre maintenant la tâche réelle liée à ce rendez-vous.
     func arrive(at planned: Entry) {
         now = Date()
-        entries = Actions.arrive(entries, at: planned.id, now: now, stopRunning: stopRunningOnStart)
+        commit { entries = Actions.arrive(entries, at: planned.id, now: now, stopRunning: stopRunningOnStart) }
         day = Date()
-        persist()
     }
 
     func isArrived(_ planned: Entry) -> Bool { Actions.isArrived(planned, in: entries) }
@@ -158,9 +209,11 @@ final class AppModel: ObservableObject {
 
     func stop(_ id: UUID) {
         now = Date()
-        guard let i = entries.firstIndex(where: { $0.id == id }) else { return }
-        entries[i].end = max(now, entries[i].start)
-        persist()
+        guard entries.contains(where: { $0.id == id }) else { return }
+        commit {
+            guard let i = entries.firstIndex(where: { $0.id == id }) else { return }
+            entries[i].end = max(now, entries[i].start)
+        }
     }
 
     /// Ouvre la fiche d'une tâche oubliée avec une fin à renseigner (par défaut : maintenant).
@@ -183,30 +236,63 @@ final class AppModel: ObservableObject {
     }
 
     func save(_ entry: Entry, recurrence: Recurrence? = nil) {
-        var e = entry
-        if let rule = recurrence, e.kind == .planned, e.seriesID == nil {
-            // L'entrée devient la première occurrence ; les suivantes sont générées à l'avance.
-            let made = Series.make(from: e, rule: rule)
-            e = made.first
-            series.append(made.series)
+        commit {
+            var e = entry
+            if let rule = recurrence, e.kind == .planned, e.seriesID == nil {
+                // L'entrée devient la première occurrence ; les suivantes sont générées à l'avance.
+                let made = Series.make(from: e, rule: rule)
+                e = made.first
+                series.append(made.series)
+            }
+            if let i = entries.firstIndex(where: { $0.id == e.id }) { entries[i] = e } else { entries.append(e) }
+            Series.topUp(&series, entries: &entries, now: Date())
         }
-        if let i = entries.firstIndex(where: { $0.id == e.id }) { entries[i] = e } else { entries.append(e) }
-        Series.topUp(&series, entries: &entries, now: Date())
-        persist()
     }
 
     func series(of entry: Entry) -> Series? { entry.seriesID.flatMap { id in series.first { $0.id == id } } }
 
     func delete(_ id: UUID) {
-        entries.removeAll { $0.id == id }
-        persist()
+        commit { entries.removeAll { $0.id == id } }
     }
 
     /// Supprime ce rendez-vous et tous les suivants de sa série (les occurrences déjà vécues restent).
     func deleteFollowing(_ entry: Entry) {
         guard let id = entry.seriesID else { return delete(entry.id) }
-        Series.end(id, from: entry.start, series: &series, entries: &entries)
+        commit { Series.end(id, from: entry.start, series: &series, entries: &entries) }
+    }
+
+    // MARK: Annuler / rétablir
+
+    private var snapshot: Snapshot { Snapshot(entries: entries, series: series) }
+
+    /// Applique une modification en mémorisant l'état d'avant, pour pouvoir l'annuler.
+    private func commit(_ change: () -> Void) {
+        history.record(snapshot)
+        change()
         persist()
+        refreshHistoryFlags()
+    }
+
+    func undo() {
+        guard let previous = history.undo(current: snapshot) else { return }
+        restore(previous)
+    }
+
+    func redo() {
+        guard let next = history.redo(current: snapshot) else { return }
+        restore(next)
+    }
+
+    private func restore(_ state: Snapshot) {
+        entries = state.entries
+        series = state.series
+        persist()
+        refreshHistoryFlags()
+    }
+
+    private func refreshHistoryFlags() {
+        canUndo = history.canUndo
+        canRedo = history.canRedo
     }
 
     private func persist() {

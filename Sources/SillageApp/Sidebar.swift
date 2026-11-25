@@ -6,6 +6,7 @@ struct Sidebar: View {
     @State private var title = ""
     @State private var category = "Travail"
     @AppStorage("stopRunningOnStart") private var stopRunning = true
+    @AppStorage("bilanByTask") private var bilanByTask = false
 
     var body: some View {
         ScrollView {
@@ -13,6 +14,7 @@ struct Sidebar: View {
                 brand
                 nowSection
                 startSection
+                recentsSection
                 shortcutsSection
                 bilanSection
             }
@@ -127,6 +129,30 @@ struct Sidebar: View {
         }
     }
 
+    // MARK: Récents
+
+    @ViewBuilder private var recentsSection: some View {
+        let recents = Array(model.recents.prefix(5))
+        if !recents.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Récents").sectionLabel()
+                VStack(spacing: 6) {
+                    ForEach(recents, id: \.title) { r in
+                        Button {
+                            model.start(title: r.title, category: r.category)
+                            model.day = Date()
+                        } label: {
+                            Label(r.title, systemImage: "arrow.counterclockwise").lineLimit(1)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(ChipButtonStyle(category: r.category))
+                        .help("Reprendre « \(r.title) » maintenant")
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: Raccourcis
 
     private var shortcutsSection: some View {
@@ -150,34 +176,47 @@ struct Sidebar: View {
     // MARK: Bilan
 
     private var bilanSection: some View {
-        let totals = model.periodTotals()
-        let maxValue = totals.map(\.duration).max() ?? 1
+        let rows: [(name: String, category: String, duration: TimeInterval)] = bilanByTask
+            ? model.periodTaskTotals().map { ($0.title, $0.category, $0.duration) }
+            : model.periodTotals().map { ($0.category, $0.category, $0.duration) }
+        let maxValue = rows.map(\.duration).max() ?? 1
         return VStack(alignment: .leading, spacing: 8) {
             Text(model.periodBilanTitle).sectionLabel()
             VStack(alignment: .leading, spacing: 12) {
-                if totals.isEmpty {
+                Picker("", selection: $bilanByTask) {
+                    Text("Catégories").tag(false)
+                    Text("Tâches").tag(true)
+                }
+                .pickerStyle(.segmented).labelsHidden()
+                if rows.isEmpty {
                     Text("Aucune activité enregistrée.").font(Theme.rounded(12)).foregroundStyle(Theme.muted)
                 }
                 if model.periodHasSimultaneous() {
                     Label("Tâches simultanées : le temps est réparti entre elles.", systemImage: "square.stack.3d.up")
                         .font(Theme.rounded(11, .medium)).foregroundStyle(Theme.muted)
                 }
-                ForEach(totals, id: \.category) { t in
-                    VStack(spacing: 5) {
+                ForEach(Array(rows.prefix(bilanByTask ? 8 : 12).enumerated()), id: \.offset) { _, row in
+                    let content = VStack(spacing: 5) {
                         HStack {
-                            Text(t.category).font(Theme.rounded(13, .medium)).foregroundStyle(Theme.ink)
+                            Text(row.name).font(Theme.rounded(13, .medium)).foregroundStyle(Theme.ink).lineLimit(1)
                             Spacer()
-                            Text(DayLogic.formatDuration(t.duration)).font(Theme.rounded(13, .semibold))
+                            Text(DayLogic.formatDuration(row.duration)).font(Theme.rounded(13, .semibold))
                                 .monospacedDigit().foregroundStyle(Theme.ink)
                         }
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
-                                Capsule().fill(Theme.color(for: t.category).opacity(0.14))
-                                Capsule().fill(Theme.color(for: t.category))
-                                    .frame(width: max(6, geo.size.width * t.duration / maxValue))
+                                Capsule().fill(Theme.color(for: row.category).opacity(0.14))
+                                Capsule().fill(Theme.color(for: row.category))
+                                    .frame(width: max(6, geo.size.width * row.duration / maxValue))
                             }
                         }
                         .frame(height: 6)
+                    }
+                    if bilanByTask {
+                        Button { model.openTask(row.name) } label: { content.contentShape(Rectangle()) }
+                            .buttonStyle(.plain).help("Voir le détail de « \(row.name) »")
+                    } else {
+                        content
                     }
                 }
             }

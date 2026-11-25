@@ -16,6 +16,8 @@
 
 <img src="docs/screenshots/02-semaine.png" width="374" alt="Vue semaine"> <img src="docs/screenshots/03-mois.png" width="374" alt="Vue mois">
 
+<img src="docs/screenshots/04-taches.png" width="760" alt="Vue Tâches : temps passé par tâche, graphique et séances">
+
 </div>
 
 Sillage est une app Mac gratuite et libre qui réunit un **calendrier** et un **journal de bord de la journée**.
@@ -47,6 +49,9 @@ Tout reste **sur votre Mac** : aucun compte, aucun réseau, aucune donnée envoy
 | Changer sa durée | **Étirer** le bord bas du bloc |
 | Corriger une heure oubliée | Clic sur le bloc dans la frise |
 | Agir sans ouvrir la fenêtre | **Barre de menus** : la tâche en cours et son chronomètre y sont affichés ; le panneau montre le prochain rendez-vous (avec **J'y suis**), permet d'arrêter une tâche, d'en démarrer une ou d'utiliser un raccourci. Fermer la fenêtre laisse Sillage actif ; **Quitter** l'arrête |
+| Savoir combien de temps j'ai passé sur une tâche | Vue **Tâches** (⌘4) : choisissez **Jour / Semaine / Mois / Tout**. La liste classe vos tâches (« SFCO », « Sillage »…, les titres identiques sont regroupés) ; un clic sur l'une montre son **total, ses séances, ses jours actifs, sa moyenne**, un **graphique** par jour (ou par semaine / mois pour une longue période) et la liste de ses séances. Dans la barre latérale, le bilan bascule entre **Catégories** et **Tâches** |
+| Reprendre une tâche déjà faite | Section **Récents** de la barre latérale (et du panneau de la barre de menus) : un clic relance la tâche avec sa catégorie |
+| Annuler une erreur | **⌘Z** annule la dernière modification (créer, déplacer, supprimer, terminer…), **⇧⌘Z** la rétablit |
 | Changer de vue | **Jour / Semaine / Mois** (sélecteur en haut à droite, ⌘1 ⌘2 ⌘3). La **semaine** montre sept jours côte à côte, prévu en pointillés et réel en plein ; le **mois** montre une case par jour avec les rendez-vous et une **barre de couleurs** du temps réellement passé. Un clic sur un jour l'ouvre. Le bilan de la barre latérale suit la période affichée |
 | Naviguer | ‹ › ou ⌘← ⌘→ (un jour, une semaine ou un mois selon la vue) ; aujourd'hui : ⌘T |
 
