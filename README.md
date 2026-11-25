@@ -1,87 +1,66 @@
-# Fil du Jour
+<div align="center">
 
-**🇫🇷 Français** · [🇬🇧 English](#english)
+<img src="docs/icon-256.png" width="128" alt="Icône de Sillage">
 
-> Un agenda qui garde aussi la trace de ce que vous avez *réellement* fait de votre journée.
+# Sillage
 
-## À propos
+**Votre agenda, et la trace de ce que vous avez vraiment fait de votre journée.**
 
-Fil du Jour est un calendrier libre et gratuit qui va plus loin que les rendez-vous. En plus de planifier (rendez-vous chez le médecin, réunions, événements), vous pouvez **démarrer une tâche** à l'heure exacte où vous la commencez, puis **la terminer** quand elle est finie, ou la laisser en cours si vous ne savez pas encore quand elle s'arrêtera.
+![macOS 13+](https://img.shields.io/badge/macOS-13%2B-blue) ![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-arm64-lightgrey) ![Licence MIT](https://img.shields.io/badge/licence-MIT-green)
 
-Le soir, vous obtenez une **frise de votre journée** : de telle heure à telle heure la douche, le repas, le travail sur tel projet, le rendez-vous, le coucher. Planifié et vécu sont réunis au même endroit.
+[English version](README.en.md)
 
-## Fonctionnalités prévues
+<img src="docs/screenshots/01-journee.png" width="760" alt="Sillage : la frise d'une journée, prévu à gauche, réel à droite">
 
-- 📅 Calendrier classique : jour, semaine, mois, avec rendez-vous planifiés.
-- ▶️ Chronométrage libre : « je commence à 16 h 34 », durée indéterminée tant que la tâche n'est pas terminée.
-- 🔀 Plusieurs tâches en parallèle, ou en alternance dans la journée.
-- 🧭 Frise chronologique de la journée : ce qui était prévu, ce qui s'est réellement passé.
-- ✏️ Correction après coup (heure de début ou de fin oubliée).
-- 🏷️ Catégories (repas, sommeil, travail, santé, loisirs…) et couleurs.
-- 🔒 Données stockées localement, export/import ouvert (JSON, iCal).
+</div>
 
-## Statut
+Sillage est une app Mac gratuite et libre qui réunit un **calendrier** et un **journal de bord de la journée**.
 
-Projet en phase de conception. Voir la [feuille de route](#feuille-de-route).
+- **Planifiez** vos rendez-vous : le médecin, une réunion… Quoi qu'il arrive, de telle heure à telle heure, vous y êtes.
+- **Démarrez une tâche** à l'instant où vous la commencez (« je commence l'appli à 16 h 34 »). Pas besoin de savoir quand elle finira : elle reste *en cours* et grandit sur la frise jusqu'à ce que vous la terminiez.
+- **Faites plusieurs choses à la fois** : les tâches simultanées se placent côte à côte.
+- **Le soir, relisez votre journée** : de telle heure à telle heure la douche, le repas, le site, le rendez-vous, le coucher. Le prévu (pointillés) et le réel (plein) sont face à face, avec un **bilan par catégorie**.
 
-## Feuille de route
+Tout reste **sur votre Mac** : aucun compte, aucun réseau, aucune donnée envoyée.
 
-1. [ ] Modèle de données (événements planifiés + entrées de temps)
-2. [ ] Démarrer / arrêter une tâche
-3. [ ] Vue « journée » en frise
-4. [ ] Vues semaine et mois
-5. [ ] Catégories et couleurs
-6. [ ] Export / import (JSON, iCal)
-7. [ ] Récapitulatif de fin de journée
+## Utilisation
 
-## Contribuer
+| Je veux… | Je fais… |
+|---|---|
+| Commencer une tâche maintenant | Panneau de gauche : titre, catégorie, **Démarrer maintenant** |
+| Terminer une tâche en cours | Bouton ■ dans « En cours » |
+| Ajouter un rendez-vous | **+ → Rendez-vous prévu** (⌘N) |
+| Noter une activité déjà passée (douche, repas…) | **+ → Activité passée** (⇧⌘N) |
+| Corriger une heure oubliée | Clic sur le bloc dans la frise |
+| Changer de jour | ‹ › ou ⌘← ⌘→ ; aujourd'hui : ⌘T |
 
-Les idées et contributions sont les bienvenues : voir [CONTRIBUTING.md](CONTRIBUTING.md).
+Les données sont dans `~/Library/Application Support/Sillage/data.json` (JSON lisible, écriture atomique).
+
+## Installation
+
+1. Téléchargez `Sillage.dmg` depuis les [Releases](../../releases) et glissez **Sillage** dans *Applications*.
+2. L'app n'est pas signée par Apple : à la première ouverture, faites un clic droit sur l'app → **Ouvrir** → **Ouvrir**.
+
+## Construire soi-même
+
+Prérequis : Xcode ou ses outils en ligne de commande (macOS 13+, Apple Silicon).
+
+```bash
+./build_app.sh   # compile, génère l'icône, assemble dist/Sillage.app
+./make_dmg.sh    # crée dist/Sillage.dmg
+swift test       # tests du cœur
+```
+
+Le cœur (`SillageCore`) est séparé de l'interface SwiftUI (`SillageApp`) ; aucune bibliothèque tierce.
+
+## Idées pour la suite
+
+- Vues semaine et mois
+- Export / import (JSON, iCal) et lecture de vos calendriers existants
+- Catégories personnalisées
+- Raccourci global et barre de menus pour démarrer / terminer une tâche
+- Récapitulatif de fin de journée
 
 ## Licence
 
-[MIT](LICENSE) : libre d'utilisation, de modification et de redistribution.
-
----
-
-## English
-
-> A calendar that also records what you *actually* did with your day.
-
-### About
-
-Fil du Jour (“Thread of the Day”) is a free, open-source calendar that goes beyond appointments. Besides planning (doctor visits, meetings, events), you can **start a task** at the exact moment you begin it, then **end it** when it's done, or leave it running if you don't know yet when it will finish.
-
-At the end of the day you get a **timeline of your day**: from this time to that time, shower, lunch, work on a project, an appointment, bedtime. What was planned and what actually happened live in one place.
-
-### Planned features
-
-- 📅 Classic calendar: day, week, month views with scheduled appointments.
-- ▶️ Free-form time tracking: “I started at 4:34 PM”, open-ended until you stop the task.
-- 🔀 Several tasks in parallel or interleaved during the day.
-- 🧭 Day timeline: what was planned vs. what really happened.
-- ✏️ After-the-fact editing (forgotten start or end time).
-- 🏷️ Categories (meals, sleep, work, health, leisure…) and colors.
-- 🔒 Local-first data, open export/import (JSON, iCal).
-
-### Status
-
-Early design phase. See the [roadmap](#roadmap).
-
-### Roadmap
-
-1. [ ] Data model (scheduled events + time entries)
-2. [ ] Start / stop a task
-3. [ ] Day timeline view
-4. [ ] Week and month views
-5. [ ] Categories and colors
-6. [ ] Export / import (JSON, iCal)
-7. [ ] End-of-day summary
-
-### Contributing
-
-Ideas and contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-### License
-
-[MIT](LICENSE): free to use, modify and redistribute.
+[MIT](LICENSE) : libre d'utilisation, de modification et de redistribution. © Damien POLLET (Wudstyz)
