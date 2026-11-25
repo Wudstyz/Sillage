@@ -291,4 +291,48 @@ final class SillageCoreTests: XCTestCase {
         XCTAssertTrue(CalendarGrid.isSameMonth(d(2026, 11, 1), d(2026, 11, 30), calendar: fixed))
         XCTAssertFalse(CalendarGrid.isSameMonth(d(2026, 10, 31), d(2026, 11, 1), calendar: fixed))
     }
+
+    // MARK: Temps simultané
+
+    func testSimultaneousTasksShareTheTime() {
+        let now = at(18)
+        // SFCO 9h–13h et Sillage 10h–14h : 3 h chacun en solo + 3 h partagées
+        let list = [entry("SFCO", at(9), at(13), .actual, "Travail"), entry("Sillage", at(10), at(14), .actual, "Loisirs")]
+        let t = DayLogic.totals(list, on: day, now: now, calendar: cal)
+        let dict = Dictionary(uniqueKeysWithValues: t.map { ($0.category, $0.duration) })
+        let soloPlusHalfOfShared: TimeInterval = 3600 + 5400                 // 1 h seul + la moitié des 3 h communes
+        XCTAssertEqual(dict["Travail"], soloPlusHalfOfShared)
+        XCTAssertEqual(dict["Loisirs"], soloPlusHalfOfShared)
+        let total = t.reduce(0.0) { $0 + $1.duration }
+        XCTAssertEqual(total, 18000)                                          // 5 h : le temps réellement écoulé (9 h → 14 h)
+        let cumulative = DayLogic.totals(list, on: day, now: now, shared: false, calendar: cal)
+        XCTAssertEqual(cumulative.reduce(0.0) { $0 + $1.duration }, 28800)   // ancien comptage : 4 h + 4 h
+    }
+
+    func testSharingWithRunningTaskAndSameCategory() {
+        let now = at(12)
+        let list = [entry("a", at(8), nil, .actual, "Travail"), entry("b", at(9), nil, .actual, "Travail"),
+                    entry("c", at(9), at(10), .planned, "Santé")]                // le prévu ne compte pas
+        let t = DayLogic.totals(list, on: day, now: now, calendar: cal)
+        XCTAssertEqual(t.count, 1)
+        XCTAssertEqual(t[0].duration, 4 * 3600)                                // 8 h → 12 h, une seule fois
+    }
+
+    func testNoOverlapIsUnchanged() {
+        let now = at(18)
+        let list = [entry("a", at(8), at(9), .actual, "Repas"), entry("b", at(9), at(11), .actual, "Travail")]
+        let t = DayLogic.totals(list, on: day, now: now, calendar: cal)
+        XCTAssertEqual(t.map(\.category), ["Travail", "Repas"])
+        XCTAssertEqual(t.map(\.duration), [7200, 3600])
+    }
+
+    func testHasSimultaneous() {
+        let now = at(18)
+        let parallel = [entry("a", at(9), at(11), .actual), entry("b", at(10), at(12), .actual)]
+        XCTAssertTrue(DayLogic.hasSimultaneous(parallel, on: day, now: now, calendar: cal))
+        let sequential = [entry("a", at(9), at(10), .actual), entry("b", at(10), at(12), .actual)]
+        XCTAssertFalse(DayLogic.hasSimultaneous(sequential, on: day, now: now, calendar: cal))
+        let plannedOnly = [entry("a", at(9), at(11), .planned), entry("b", at(10), at(12), .actual)]
+        XCTAssertFalse(DayLogic.hasSimultaneous(plannedOnly, on: day, now: now, calendar: cal))   // prévu et réel ne comptent pas
+    }
 }

@@ -46,17 +46,39 @@ public enum DayLogic {
     }
 
     /// Temps réellement passé par catégorie sur le jour donné (entrées réelles seulement, tronquées au jour).
-    public static func totals(_ all: [Entry], on day: Date, now: Date,
+    ///
+    /// `shared` : quand plusieurs tâches tournent en même temps, chacune ne compte que sa part du temps
+    /// (deux tâches simultanées pendant une heure : une demi-heure chacune). Le total est alors le temps
+    /// réellement écoulé ; sans cela, deux tâches parallèles d'une heure compteraient deux heures.
+    public static func totals(_ all: [Entry], on day: Date, now: Date, shared: Bool = true,
                               calendar: Calendar = .current) -> [(category: String, duration: TimeInterval)] {
         let dayStart = calendar.startOfDay(for: day)
         let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
-        var sums: [String: TimeInterval] = [:]
+        var spans: [(category: String, start: Date, end: Date)] = []
         for e in entries(all, kind: .actual, on: day, now: now, calendar: calendar) {
             let s = max(e.start, dayStart)
             let f = min(e.effectiveEnd(now: now), dayEnd)
-            if f > s { sums[e.category, default: 0] += f.timeIntervalSince(s) }
+            if f > s { spans.append((e.category, s, f)) }
+        }
+        var sums: [String: TimeInterval] = [:]
+        if shared {
+            // Balayage : entre deux bornes consécutives, le temps est partagé à parts égales entre les tâches actives.
+            let bounds = Array(Set(spans.flatMap { [$0.start, $0.end] })).sorted()
+            for (a, b) in zip(bounds, bounds.dropFirst()) {
+                let active = spans.filter { $0.start <= a && $0.end >= b }
+                guard !active.isEmpty else { continue }
+                let part = b.timeIntervalSince(a) / Double(active.count)
+                for span in active { sums[span.category, default: 0] += part }
+            }
+        } else {
+            for span in spans { sums[span.category, default: 0] += span.end.timeIntervalSince(span.start) }
         }
         return sums.map { ($0.key, $0.value) }.sorted { $0.1 > $1.1 }
+    }
+
+    /// Des tâches réelles se chevauchent-elles ce jour-là ? (le bilan répartit alors le temps entre elles)
+    public static func hasSimultaneous(_ all: [Entry], on day: Date, now: Date, calendar: Calendar = .current) -> Bool {
+        lanes(entries(all, kind: .actual, on: day, now: now, calendar: calendar), now: now).contains { $0.lanes > 1 }
     }
 
     /// Au-delà de cette durée, une tâche encore « en cours » est probablement oubliée.

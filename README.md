@@ -37,6 +37,7 @@ Tout reste **sur votre Mac** : aucun compte, aucun réseau, aucune donnée envoy
 | Être prévenu avant un rendez-vous | Dans la fiche : **Rappel** (à l'heure, 5 min, 15 min, 1 h, 1 jour avant) : notification macOS, même fenêtre fermée |
 | Lancer une activité courante (douche, repas, sommeil, trajet, pause, sport) | Un clic sur un **raccourci** |
 | Enchaîner deux tâches | Case « Terminer la tâche en cours » (cochée par défaut) |
+| Travailler sur deux choses en même temps | **Décocher** « Terminer la tâche en cours » : les deux restent en cours, côte à côte sur la frise. Le bilan **répartit le temps** entre les tâches simultanées (deux tâches pendant 3 h : 1 h 30 chacune), si bien que le total reste le temps réellement écoulé |
 | Terminer une tâche en cours | Bouton ■ dans « En cours » |
 | Signaler que je suis arrivé à un rendez-vous | Clic droit sur le rendez-vous → **J'y suis** : la tâche réelle démarre, et la frise affiche le retard ou l'avance |
 | Ajouter un rendez-vous | **+ → Rendez-vous prévu** (⌘N) |

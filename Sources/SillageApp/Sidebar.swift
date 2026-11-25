@@ -158,6 +158,10 @@ struct Sidebar: View {
                 if totals.isEmpty {
                     Text("Aucune activité enregistrée.").font(Theme.rounded(12)).foregroundStyle(Theme.muted)
                 }
+                if model.periodHasSimultaneous() {
+                    Label("Tâches simultanées : le temps est réparti entre elles.", systemImage: "square.stack.3d.up")
+                        .font(Theme.rounded(11, .medium)).foregroundStyle(Theme.muted)
+                }
                 ForEach(totals, id: \.category) { t in
                     VStack(spacing: 5) {
                         HStack {

@@ -37,6 +37,7 @@ Everything stays **on your Mac**: no account, no network, no data sent anywhere.
 | Be warned before an appointment | In the sheet: **Rappel** (Reminder: at start, 5 min, 15 min, 1 h, 1 day before): macOS notification, even with the window closed |
 | Launch a common activity (shower, meal, sleep, commute, break, sport) | One click on a **shortcut** |
 | Switch from one task to the next | “Terminer la tâche en cours” checkbox (on by default) |
+| Work on two things at once | **Untick** “Terminer la tâche en cours”: both stay running, side by side on the timeline. The summary **shares the time** between simultaneous tasks (two tasks for 3 h: 1 h 30 each), so the total stays the time actually elapsed |
 | Stop a running task | ■ button under “En cours” (Running) |
 | Tell I've arrived at an appointment | Right-click the appointment → **J'y suis** (“I'm here”): the real task starts and the timeline shows how early or late you were |
 | Add an appointment | **+ → Rendez-vous prévu** (⌘N) |

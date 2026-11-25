@@ -103,6 +103,18 @@ final class AppModel: ObservableObject {
         switch viewMode { case .day: return "Bilan du jour"; case .week: return "Bilan de la semaine"; case .month: return "Bilan du mois" }
     }
 
+    /// Des tâches se chevauchent-elles sur la période affichée ?
+    func periodHasSimultaneous() -> Bool {
+        let cal = Calendar.current
+        let days: [Date]
+        switch viewMode {
+        case .day: days = [day]
+        case .week: days = CalendarGrid.week(containing: day)
+        case .month: days = CalendarGrid.month(containing: day).flatMap { $0 }.filter { cal.isDate($0, equalTo: day, toGranularity: .month) }
+        }
+        return days.contains { DayLogic.hasSimultaneous(entries, on: $0, now: now) }
+    }
+
     /// Temps passé par catégorie sur la période affichée.
     func periodTotals() -> [(category: String, duration: TimeInterval)] {
         let cal = Calendar.current
