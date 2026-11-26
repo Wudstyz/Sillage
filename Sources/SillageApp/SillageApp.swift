@@ -63,7 +63,7 @@ struct SillageApp: App {
                 Button("Vue Jour") { model.viewMode = .day }.keyboardShortcut("1")
                 Button("Vue Semaine") { model.viewMode = .week }.keyboardShortcut("2")
                 Button("Vue Mois") { model.viewMode = .month }.keyboardShortcut("3")
-                Button("Vue Tâches") { model.viewMode = .tasks }.keyboardShortcut("4")
+                Button("Vue Bilan") { model.viewMode = .tasks }.keyboardShortcut("4")
                 Button("Vue Récap") { model.viewMode = .recap }.keyboardShortcut("5")
             }
         }

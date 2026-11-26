@@ -767,4 +767,60 @@ final class SillageCoreTests: XCTestCase {
         try store.save([], series: [], goals: [goal])
         XCTAssertNotNil(store.snapshotIfNeeded(now: at(9), force: true))
     }
+
+    // MARK: Rapport par catégorie
+
+    func testCategorySummariesAcrossDaysWithSharedTime() {
+        let now = d(2026, 11, 27, 18)
+        func e(_ title: String, _ day: Int, _ h1: Int, _ h2: Int, _ cat: String) -> Entry {
+            Entry(title: title, category: cat, kind: .actual, start: d(2026, 11, day, h1), end: d(2026, 11, day, h2))
+        }
+        let list = [e("SFCO", 25, 9, 12, "Travail"), e("Sillage", 25, 10, 12, "Loisirs"),      // 10 h–12 h en parallèle
+                    e("Facture", 26, 14, 15, "Travail"), e("sfco", 26, 9, 10, "Travail"),
+                    Entry(title: "Rdv", category: "Santé", kind: .planned, start: d(2026, 11, 26, 8), end: d(2026, 11, 26, 9))]
+        let days = Reports.days(for: .all, anchor: now, entries: list, now: now, calendar: fixed)
+        let s = Reports.categorySummaries(list, days: days, now: now, calendar: fixed)
+        XCTAssertEqual(s.map(\.category), ["Travail", "Loisirs"])                              // le prévu ne compte pas
+        let hour: TimeInterval = 3600
+        let work = s[0]
+        // 25 : SFCO 9–10 seul (1 h) + 10–12 partagé (1 h) = 2 h ; 26 : Facture 1 h + sfco 1 h = 2 h
+        XCTAssertEqual(work.total, 4 * hour)
+        XCTAssertEqual(work.perDay.map(\.duration), [2 * hour, 2 * hour])
+        XCTAssertEqual(work.sessions, 3); XCTAssertEqual(work.activeDays, 2)
+        XCTAssertEqual(work.averagePerActiveDay, 2 * hour)
+        XCTAssertEqual(work.tasks.map(\.title), ["SFCO", "Facture"])                           // regroupées ; « SFCO » = graphie la plus utilisée
+        XCTAssertEqual(work.tasks.map(\.duration), [3 * hour, hour])
+        XCTAssertEqual(work.first, d(2026, 11, 25, 9)); XCTAssertEqual(work.last, d(2026, 11, 26, 15))
+        XCTAssertEqual(s[1].total, hour)                                                          // moitié de 2 h partagées
+        // la somme des catégories = le temps réellement écoulé
+        XCTAssertEqual(s.reduce(0) { $0 + $1.total }, 5 * hour)
+        // période réduite à un jour
+        let one = Reports.categorySummaries(list, days: [d(2026, 11, 26, 0)], now: now, calendar: fixed)
+        XCTAssertEqual(one.map(\.category), ["Travail"]); XCTAssertEqual(one[0].total, 2 * hour)
+        XCTAssertEqual(Reports.sessions(ofCategory: "Travail", in: list, days: days, calendar: fixed).count, 3)
+        XCTAssertEqual(Reports.sessions(ofCategory: "Travail", in: list, days: [d(2026, 11, 26, 0)], calendar: fixed).first?.title, "Facture")
+    }
+
+    func testTaskDoneInTwoCategoriesIsSplit() {
+        let now = at(20)
+        let list = [entry("SFCO", at(9), at(10), .actual, "Travail"), entry("SFCO", at(14), at(16), .actual, "Loisirs")]
+        let t = DayLogic.taskCategoryTotals(list, on: day, now: now, calendar: cal)
+        XCTAssertEqual(t.map { "\($0.title)/\($0.category)" }, ["SFCO/Loisirs", "SFCO/Travail"])
+        XCTAssertEqual(t.map(\.duration), [7200, 3600])
+    }
+
+    func testChartSlicesGroupSmallPartsIntoOthers() {
+        let items: [(label: String, category: String, value: TimeInterval)] =
+            (1...10).map { (label: "T\($0)", category: "Travail", value: TimeInterval($0) * 600) } + [("Zéro", "Autre", 0)]
+        let few = ChartData.slices(Array(items.prefix(3)), maxSlices: 8)
+        XCTAssertEqual(few.map(\.label), ["T3", "T2", "T1"])                      // triées ; rien de regroupé
+        let many = ChartData.slices(items, maxSlices: 5)
+        XCTAssertEqual(many.count, 5)                                               // 4 grandes parts + « Autres »
+        XCTAssertEqual(many.map(\.label), ["T10", "T9", "T8", "T7", "Autres"])
+        XCTAssertTrue(many.last!.isOther)
+        let othersExpected: TimeInterval = (1...6).reduce(0) { $0 + TimeInterval($1) * 600 }
+        XCTAssertEqual(many.last!.value, othersExpected)
+        XCTAssertEqual(many.reduce(0) { $0 + $1.value }, items.reduce(0) { $0 + $1.value })   // rien ne se perd
+        XCTAssertFalse(ChartData.slices(items, maxSlices: 5).contains { $0.label == "Zéro" })  // les valeurs nulles sont ignorées
+    }
 }

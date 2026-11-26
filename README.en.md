@@ -34,10 +34,19 @@ Two lanes: **Prévu** (Planned: appointments, tinted with an edge) and **Réel**
 
 The **week** puts seven days side by side. The **month** gives one card per day: planned appointments and a **colour bar** of the time actually spent, by category.
 
-### Tasks: how long on what
-<img src="docs/screenshots/04-taches.png" width="800" alt="Tasks view: time spent per task, chart and sessions">
+### The summary: where your time goes
+<img src="docs/screenshots/04-bilan.png" width="800" alt="Summary view: pie chart of the time split by category">
 
-Pick **Jour / Semaine / Mois / Tout** (Day / Week / Month / All time). Tasks with the same title are grouped (“SFCO”, “sfco” and “SFCO” = one task). Click one to see its **total, sessions, active days, average**, a **chart** per day (per week or month over a long period) and the list of its sessions, with their notes.
+The **Bilan** (Summary) view (⌘4) opens on an **overview**: a **pie chart** of how your time is split, its legend with percentages, key figures and the day-by-day evolution (stacked by category). Nothing to pick to see everything at a glance. Two settings at the top:
+
+- **Tâches / Catégories** (Tasks / Categories): group by task (“SFCO”, “Sillage”…) or by category (Work, Meals, Sleep…). Tasks with the same title are grouped (“SFCO”, “sfco” and “SFCO” = one task).
+- **Jour / Semaine / Mois / Tout** (Day / Week / Month / All time): the period of the pie chart and the lists (**Tout** = since your first entry).
+
+Click a slice, a legend line or a list line to open its **detail**; “Vue d'ensemble” (Overview) at the top of the list takes you back. A **task's** detail shows its **total, sessions, active days, average**, a **chart** (per day, or per week / month over a long period) and the list of its sessions, with their notes.
+
+<img src="docs/screenshots/10-bilan-categorie.png" width="800" alt="A category's detail: share of time, chart, the tasks it contains">
+
+A **category's** detail gives the same, plus its **share of the time** and the **tasks that make it up** (a click opens the task). Simultaneous time is shared: the categories always add up to the time actually elapsed. The **day recap** and the sidebar summary also have their pie chart / clickable category lines.
 
 **Rename… / merge**: a typo (“Sfco”), or two names for the same thing (“Facture” and “Facture CNPCO”)? The **Renommer…** (Rename) button changes the name of all its sessions at once; if the new name is another task's, they **merge**. A category can be applied at the same time, and **⌘Z** undoes it.
 
@@ -99,13 +108,13 @@ Sillage **doesn't guess anything**: a task keeps running until you stop it, even
 ### View and fix
 | I want to… | I do… |
 |---|---|
-| Change view | **Jour / Semaine / Mois / Tâches / Récap** (Day / Week / Month / Tasks / Recap), ⌘1 to ⌘5 |
+| Change view | **Jour / Semaine / Mois / Bilan / Récap** (Day / Week / Month / Summary / Recap), ⌘1 to ⌘5 |
 | Navigate | ‹ › or ⌘← ⌘→ (one day, week or month depending on the view); today: ⌘T; a specific date: the calendar icon |
 | Create, move, stretch a range | **Drag** in an empty part of the timeline, drag a block, stretch its bottom edge |
-| Fix a time | Click the block (or the session in the Tasks view, or the recap row) |
-| Fix a task name, group two tasks | Tasks view → **Renommer…** (merges if the name already exists) |
-| Set a time goal | Tasks view → **Objectif…**, or **⇧⌘O** |
-| See the summary by category or by task | Sidebar: **Catégories / Tâches**; it follows the displayed period |
+| Fix a time | Click the block (or the session in the Summary, or the recap row) |
+| Fix a task name, group two tasks | Summary → a task's detail → **Renommer…** (merges if the name already exists) |
+| Set a time goal | Summary → a task's or category's detail → **Objectif…**, or **⇧⌘O** |
+| See where my time goes, by category or by task | **Bilan** (⌘4): pie chart, **Tâches / Catégories**, **Jour / Semaine / Mois / Tout**. A summary also follows the displayed period in the sidebar |
 | Undo a mistake | **⌘Z** undoes the last change (create, move, delete, stop…), **⇧⌘Z** redoes it |
 | Back up, export or restore my data | **⇧⌘B** (or the “Copie de secours à…” line at the bottom of the sidebar): see [Your data](#your-data) |
 

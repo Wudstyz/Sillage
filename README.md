@@ -34,10 +34,19 @@ Deux voies : **Prévu** (rendez-vous, teintés avec un liseré) et **Réel** (ce
 
 La **semaine** met sept jours côte à côte. Le **mois** donne une carte par jour : rendez-vous prévus et **barre de couleurs** du temps réellement passé, par catégorie.
 
-### Les tâches : combien de temps sur quoi
-<img src="docs/screenshots/04-taches.png" width="800" alt="Vue Tâches : temps passé par tâche, graphique et séances">
+### Le bilan : où part votre temps
+<img src="docs/screenshots/04-bilan.png" width="800" alt="Vue Bilan : camembert de la répartition du temps par catégorie">
 
-Choisissez **Jour / Semaine / Mois / Tout**. Les tâches de même titre sont regroupées (« SFCO », « sfco » et « SFCO » = une seule tâche). Un clic sur l'une montre son **total, ses séances, ses jours actifs, sa moyenne**, un **graphique** par jour (par semaine ou par mois sur une longue période) et la liste de ses séances, avec leurs notes.
+La vue **Bilan** (⌘4) s'ouvre sur une **vue d'ensemble** : un **camembert** de la répartition du temps, sa légende avec les pourcentages, les chiffres clés et l'évolution jour par jour (empilée par catégorie). Rien à choisir pour tout voir d'un coup d'œil. Deux réglages en haut :
+
+- **Tâches / Catégories** : regrouper par tâche (« SFCO », « Sillage »…) ou par catégorie (Travail, Repas, Sommeil…). Les tâches de même titre sont regroupées (« SFCO », « sfco » et « SFCO » = une seule tâche).
+- **Jour / Semaine / Mois / Tout** : la période du camembert et des listes (**Tout** = depuis votre première entrée).
+
+Un clic sur une part du camembert, sur une ligne de la légende ou de la liste ouvre le **détail** ; « Vue d'ensemble » en haut de la liste y ramène. Le détail d'une **tâche** montre son **total, ses séances, ses jours actifs, sa moyenne**, un **graphique** (par jour, ou par semaine / mois sur une longue période) et la liste de ses séances, avec leurs notes.
+
+<img src="docs/screenshots/10-bilan-categorie.png" width="800" alt="Détail d'une catégorie : part du temps, graphique, tâches qui la composent">
+
+Le détail d'une **catégorie** donne la même chose, plus sa **part du temps** et les **tâches qui la composent** (un clic ouvre la tâche). Le temps simultané est réparti : la somme des catégories est toujours le temps réellement écoulé. Le **récap du jour** et le bilan de la barre latérale ont eux aussi leur camembert / leurs lignes cliquables par catégorie.
 
 **Renommer… / fusionner** : une faute de frappe (« Sfco »), ou deux noms pour la même chose (« Facture » et « Facture CNPCO ») ? Le bouton **Renommer…** change le nom de toutes les séances d'un coup ; si le nouveau nom est celui d'une autre tâche, elles **fusionnent**. Une catégorie peut être appliquée en même temps, et **⌘Z** annule.
 
@@ -99,13 +108,13 @@ Sillage **ne devine rien** : une tâche continue tant que vous ne l'arrêtez pas
 ### Voir et corriger
 | Je veux… | Je fais… |
 |---|---|
-| Changer de vue | **Jour / Semaine / Mois / Tâches / Récap** (⌘1 à ⌘5) |
+| Changer de vue | **Jour / Semaine / Mois / Bilan / Récap** (⌘1 à ⌘5) |
 | Naviguer | ‹ › ou ⌘← ⌘→ (un jour, une semaine ou un mois selon la vue) ; aujourd'hui : ⌘T ; une date précise : l'icône calendrier |
 | Créer, déplacer, étirer une plage | **Glisser** dans le vide de la frise, glisser un bloc, étirer son bord bas |
-| Corriger une heure | Clic sur le bloc (ou sur la séance dans la vue Tâches, ou sur la ligne du récap) |
-| Corriger un nom de tâche, regrouper deux tâches | Vue Tâches → **Renommer…** (fusionne si le nom existe déjà) |
-| Fixer un objectif de temps | Vue Tâches → **Objectif…**, ou **⇧⌘O** |
-| Voir le bilan par catégorie ou par tâche | Barre latérale : **Catégories / Tâches** ; il suit la période affichée |
+| Corriger une heure | Clic sur le bloc (ou sur la séance dans le Bilan, ou sur la ligne du récap) |
+| Corriger un nom de tâche, regrouper deux tâches | Bilan → détail d'une tâche → **Renommer…** (fusionne si le nom existe déjà) |
+| Fixer un objectif de temps | Bilan → détail d'une tâche ou d'une catégorie → **Objectif…**, ou **⇧⌘O** |
+| Voir où part mon temps, par catégorie ou par tâche | **Bilan** (⌘4) : camembert, **Tâches / Catégories**, **Jour / Semaine / Mois / Tout**. Un résumé suit aussi la période affichée dans la barre latérale |
 | Annuler une erreur | **⌘Z** annule la dernière modification (créer, déplacer, supprimer, terminer…), **⇧⌘Z** la rétablit |
 | Sauvegarder, exporter ou restaurer mes données | **⇧⌘B** (ou la ligne « Copie de secours à… » en bas de la barre latérale) : voir [Vos données](#vos-données) |
 

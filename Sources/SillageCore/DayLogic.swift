@@ -115,6 +115,24 @@ public enum DayLogic {
         .sorted { $0.duration > $1.duration }
     }
 
+    /// Temps passé par tâche **et** par catégorie sur un jour : une tâche faite dans deux catégories donne deux lignes.
+    /// Sert à détailler une catégorie par tâche (le temps simultané est réparti comme ailleurs).
+    public static func taskCategoryTotals(_ all: [Entry], on day: Date, now: Date, shared: Bool = true,
+                                          calendar: Calendar = .current) -> [(title: String, category: String, duration: TimeInterval)] {
+        struct Key: Hashable { let task: String; let category: String }
+        struct Acc { var spellings: [String: TimeInterval] = [:]; var total: TimeInterval = 0 }
+        var groups: [Key: Acc] = [:]
+        for (e, d) in countedSpans(all, on: day, now: now, shared: shared, calendar: calendar) {
+            let key = Key(task: taskKey(e.title), category: e.category)
+            var acc = groups[key] ?? Acc()
+            acc.spellings[e.title.trimmingCharacters(in: .whitespaces), default: 0] += d
+            acc.total += d
+            groups[key] = acc
+        }
+        return groups.map { ($0.value.spellings.max { $0.value < $1.value }!.key, $0.key.category, $0.value.total) }
+            .sorted { $0.duration > $1.duration }
+    }
+
     /// Des tâches réelles se chevauchent-elles ce jour-là ? (le bilan répartit alors le temps entre elles)
     public static func hasSimultaneous(_ all: [Entry], on day: Date, now: Date, calendar: Calendar = .current) -> Bool {
         lanes(entries(all, kind: .actual, on: day, now: now, calendar: calendar), now: now).contains { $0.lanes > 1 }

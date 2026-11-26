@@ -19,6 +19,7 @@ struct RecapView: View {
                     cards(recap)
                     if !recap.segments.isEmpty { journey(recap) }
                     if !recap.appointments.isEmpty { appointments(recap) }
+                    if !recap.categories.isEmpty { categories(recap) }
                     if !recap.tasks.isEmpty { tasks(recap) }
                 }
             }
@@ -179,6 +180,39 @@ struct RecapView: View {
         }
         return Label(text, systemImage: symbol).font(Theme.rounded(12, .semibold)).foregroundStyle(color)
             .padding(.horizontal, 10).padding(.vertical, 4).background(Capsule().fill(color.opacity(0.12)))
+    }
+
+    // MARK: Temps par catégorie
+
+    private func categories(_ recap: DayRecap) -> some View {
+        let total = recap.categories.reduce(0) { $0 + $1.duration }
+        let slices = recap.categories.map { DonutSlice(id: $0.category, label: $0.category, value: $0.duration, color: Theme.color(for: $0.category)) }
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Temps par catégorie").sectionLabel()
+            HStack(alignment: .center, spacing: 24) {
+                DonutChart(slices: slices, centerTitle: DayLogic.formatDuration(total), centerSubtitle: "enregistrées", lineWidth: 30)
+                    .frame(width: 190, height: 190)
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(recap.categories, id: \.category) { c in
+                        Button { model.openCategory(c.category) } label: {
+                            HStack(spacing: 10) {
+                                Circle().fill(Theme.color(for: c.category)).frame(width: 10, height: 10)
+                                Text(c.category).font(Theme.rounded(14, .medium)).foregroundStyle(Theme.ink)
+                                Spacer()
+                                Text("\(total > 0 ? Int((c.duration / total * 100).rounded()) : 0) %").font(Theme.rounded(12))
+                                    .foregroundStyle(Theme.muted).monospacedDigit()
+                                Text(DayLogic.formatDuration(c.duration)).font(Theme.rounded(13, .semibold)).monospacedDigit()
+                                    .foregroundStyle(Theme.ink).frame(width: 70, alignment: .trailing)
+                            }
+                            .padding(.vertical, 4).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain).help("Voir le détail de « \(c.category) »")
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .card()
+        }
     }
 
     // MARK: Temps par tâche

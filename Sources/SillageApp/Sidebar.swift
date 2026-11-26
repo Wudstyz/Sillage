@@ -302,12 +302,10 @@ struct Sidebar: View {
                         }
                         .frame(height: 6)
                     }
-                    if bilanByTask {
-                        Button { model.openTask(row.name) } label: { content.contentShape(Rectangle()) }
-                            .buttonStyle(.plain).help("Voir le détail de « \(row.name) »")
-                    } else {
-                        content
+                    Button { if bilanByTask { model.openTask(row.name) } else { model.openCategory(row.name) } } label: {
+                        content.contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain).help("Voir le détail de « \(row.name) »")
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

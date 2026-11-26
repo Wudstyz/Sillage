@@ -9,7 +9,7 @@ enum ViewMode: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .day: return "Jour"; case .week: return "Semaine"; case .month: return "Mois"
-        case .tasks: return "Tâches"; case .recap: return "Récap"
+        case .tasks: return "Bilan"; case .recap: return "Récap"
         }
     }
 }
@@ -47,8 +47,17 @@ final class AppModel: ObservableObject {
     @Published var reportPeriod: ReportPeriod = .month {
         didSet { UserDefaults.standard.set(reportPeriod.rawValue, forKey: "reportPeriod") }
     }
-    /// Tâche affichée en détail dans la vue Tâches (clé de regroupement).
+    /// Tâche affichée en détail dans la vue Bilan (clé de regroupement).
     @Published var selectedTask: String?
+    /// Catégorie affichée en détail dans la vue Bilan.
+    @Published var selectedCategory: String?
+    /// Bilan regroupé par catégories (sinon par tâches). SILLAGE_BILAN=categories|tasks : valeur imposée (tests, captures), non mémorisée.
+    @Published var showCategories: Bool {
+        didSet { if Self.bilanEnv == nil { UserDefaults.standard.set(showCategories, forKey: "bilanShowCategories") } }
+    }
+    private static let bilanEnv = ProcessInfo.processInfo.environment["SILLAGE_BILAN"]
+    /// Vrai quand on arrive dans le Bilan pour voir une tâche ou une catégorie précise (sinon on y arrive sur la vue d'ensemble).
+    var bilanKeepSelection = false
     /// Fenêtre « Sauvegarde et export ».
     @Published var showBackup = false
     /// Fenêtre « Calendriers Mac et Google ».
@@ -80,6 +89,7 @@ final class AppModel: ObservableObject {
 
     init(store: Store = .default) {
         self.store = store
+        showCategories = Self.bilanEnv.map { $0 == "categories" } ?? UserDefaults.standard.bool(forKey: "bilanShowCategories")
         // SILLAGE_VIEW : vue affichée au lancement (captures d'écran de la documentation).
         let saved = ProcessInfo.processInfo.environment["SILLAGE_VIEW"] ?? UserDefaults.standard.string(forKey: "viewMode")
         viewMode = ViewMode(rawValue: saved ?? "") ?? .day
@@ -108,6 +118,9 @@ final class AppModel: ObservableObject {
         }
         if let key = env["SILLAGE_OPEN_RENAME"] {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.renameRequest = key }
+        }
+        if let category = env["SILLAGE_OPEN_CATEGORY"] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.openCategory(category) }
         }
         if env["SILLAGE_OPEN_SERIES"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
@@ -190,9 +203,19 @@ final class AppModel: ObservableObject {
         viewMode = .day
     }
 
-    /// Ouvre une tâche en détail dans la vue Tâches.
+    /// Ouvre une tâche en détail dans la vue Bilan.
     func openTask(_ title: String) {
         selectedTask = DayLogic.taskKey(title)
+        showCategories = false
+        bilanKeepSelection = viewMode != .tasks
+        viewMode = .tasks
+    }
+
+    /// Ouvre une catégorie en détail dans la vue Bilan.
+    func openCategory(_ category: String) {
+        selectedCategory = category
+        showCategories = true
+        bilanKeepSelection = viewMode != .tasks
         viewMode = .tasks
     }
 
@@ -210,7 +233,7 @@ final class AppModel: ObservableObject {
         case .all: base = "Tout l'historique"
         }
         switch viewMode {
-        case .tasks: return "Tâches · \(base)"
+        case .tasks: return "Bilan · \(base)"
         case .recap: return "Récap · " + day.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
         default: return base
         }
@@ -239,6 +262,9 @@ final class AppModel: ObservableObject {
 
     /// Rapport par tâche sur la période affichée.
     func taskSummaries() -> [TaskSummary] { Reports.summaries(entries, days: periodDays, now: now) }
+
+    /// Rapport par catégorie sur la période affichée.
+    func categorySummaries() -> [CategorySummary] { Reports.categorySummaries(entries, days: periodDays, now: now) }
 
     /// Temps passé par tâche sur la période affichée (pour le bilan de la barre latérale).
     func periodTaskTotals() -> [(title: String, category: String, duration: TimeInterval)] {
@@ -368,6 +394,15 @@ final class AppModel: ObservableObject {
 
     func goalProgress(forTask key: String) -> [GoalProgress] {
         goalProgress().filter { $0.goal.taskKey == key }
+    }
+
+    func goalProgress(forCategory category: String) -> [GoalProgress] {
+        goalProgress().filter { $0.goal.taskKey == nil && $0.goal.category == category }
+    }
+
+    func newGoal(forCategory category: String) {
+        goalDraft = Goal(category: category, title: category, hours: 10, period: .week)
+        showGoals = true
     }
 
     /// Ouvre la fenêtre des objectifs, avec un objectif à créer pour cette tâche.
