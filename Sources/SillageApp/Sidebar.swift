@@ -282,8 +282,15 @@ struct Sidebar: View {
                     Text("Aucune activité enregistrée.").font(Theme.rounded(12)).foregroundStyle(Theme.muted)
                 }
                 if model.periodHasSimultaneous() {
-                    Label("Tâches simultanées : le temps est réparti entre elles.", systemImage: "square.stack.3d.up")
-                        .font(Theme.rounded(11, .medium)).foregroundStyle(Theme.muted)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Picker("Temps simultané", selection: $model.cumulativeTime) {
+                            Text("Réparti").tag(false)
+                            Text("Cumulé").tag(true)
+                        }
+                        .pickerStyle(.segmented).labelsHidden()
+                        Label(model.simultaneousExplanation, systemImage: "square.stack.3d.up")
+                            .font(Theme.rounded(11, .medium)).foregroundStyle(Theme.muted)
+                    }
                 }
                 ForEach(Array(rows.prefix(bilanByTask ? 8 : 12).enumerated()), id: \.offset) { _, row in
                     let content = VStack(spacing: 5) {

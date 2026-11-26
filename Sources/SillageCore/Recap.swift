@@ -65,6 +65,10 @@ public struct DayRecap: Sendable {
     public let tracked: TimeInterval
     public let firstStart: Date?
     public let lastEnd: Date?
+    /// Temps réellement écoulé avec au moins une activité : ne dépend pas du mode de comptage.
+    public let elapsed: TimeInterval
+    /// Mode de comptage : vrai = temps simultané réparti, faux = cumulé (le total peut dépasser le temps écoulé, voire 24 h).
+    public let shared: Bool
     public let isStillRunning: Bool
     public let appointments: [RecapAppointment]
     public let hasSimultaneous: Bool
@@ -76,7 +80,8 @@ public enum Recap {
     /// Les trous plus courts que ça ne sont pas signalés.
     public static let minimumGap: TimeInterval = 5 * 60
 
-    public static func build(_ all: [Entry], on day: Date, now: Date, calendar: Calendar = .current) -> DayRecap {
+    public static func build(_ all: [Entry], on day: Date, now: Date, shared: Bool = true,
+                             calendar: Calendar = .current) -> DayRecap {
         let dayStart = calendar.startOfDay(for: day)
         let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
 
@@ -113,13 +118,14 @@ public enum Recap {
                 RecapAppointment(entry: planned, status: status(of: planned, in: all, covered: covered.map { ($0.start, $0.end) }, now: now))
             }
 
-        let categories = DayLogic.totals(all, on: day, now: now, calendar: calendar)
+        let categories = DayLogic.totals(all, on: day, now: now, shared: shared, calendar: calendar)
         return DayRecap(
             day: dayStart, segments: segments,
-            tasks: DayLogic.taskTotals(all, on: day, now: now, calendar: calendar).map { TaskTotal(title: $0.title, category: $0.category, duration: $0.duration) },
+            tasks: DayLogic.taskTotals(all, on: day, now: now, shared: shared, calendar: calendar).map { TaskTotal(title: $0.title, category: $0.category, duration: $0.duration) },
             categories: categories,
             tracked: categories.reduce(0) { $0 + $1.duration },
             firstStart: spans.map(\.start).min(), lastEnd: spans.map(\.end).max(),
+            elapsed: covered.reduce(0) { $0 + $1.end.timeIntervalSince($1.start) }, shared: shared,
             isStillRunning: spans.contains { $0.entry.isRunning },
             appointments: appointments,
             hasSimultaneous: DayLogic.hasSimultaneous(all, on: day, now: now, calendar: calendar))
@@ -147,7 +153,8 @@ public enum Recap {
 
         if let first = recap.firstStart, let last = recap.lastEnd {
             let end = recap.isStillRunning ? "maintenant" : time(last)
-            lines.append("**Enregistré : \(DayLogic.formatDuration(recap.tracked))** · de \(time(first)) à \(end)")
+            let note = !recap.shared && recap.tracked > recap.elapsed + 60 ? " (temps écoulé : \(DayLogic.formatDuration(recap.elapsed)))" : ""
+            lines.append("**Enregistré : \(DayLogic.formatDuration(recap.tracked))**\(note) · de \(time(first)) à \(end)")
             lines.append("")
         }
         if !recap.segments.isEmpty {
@@ -163,7 +170,12 @@ public enum Recap {
         if !recap.tasks.isEmpty {
             lines.append("## Temps par tâche")
             for t in recap.tasks { lines.append("- \(t.title) : \(DayLogic.formatDuration(t.duration))") }
-            if recap.hasSimultaneous { lines.append("") ; lines.append("_Tâches simultanées : le temps est réparti entre elles._") }
+            if recap.hasSimultaneous {
+                lines.append("")
+                lines.append(recap.shared
+                             ? "_Tâches simultanées : le temps est réparti entre elles._"
+                             : "_Tâches simultanées : temps cumulé (\(DayLogic.formatDuration(recap.elapsed)) de temps écoulé)._")
+            }
             lines.append("")
         }
         if !recap.appointments.isEmpty {

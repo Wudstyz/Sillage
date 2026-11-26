@@ -56,6 +56,13 @@ final class AppModel: ObservableObject {
         didSet { if Self.bilanEnv == nil { UserDefaults.standard.set(showCategories, forKey: "bilanShowCategories") } }
     }
     private static let bilanEnv = ProcessInfo.processInfo.environment["SILLAGE_BILAN"]
+    /// Temps simultané : réparti entre les tâches (par défaut) ou cumulé (chaque tâche compte tout son temps, le total peut dépasser 24 h).
+    /// SILLAGE_TIME=shared|cumulative : valeur imposée (tests, captures), non mémorisée.
+    @Published var cumulativeTime: Bool {
+        didSet { if Self.timeEnv == nil { UserDefaults.standard.set(cumulativeTime, forKey: "cumulativeTime") } }
+    }
+    private static let timeEnv = ProcessInfo.processInfo.environment["SILLAGE_TIME"]
+    var sharesTime: Bool { !cumulativeTime }
     /// Vrai quand on arrive dans le Bilan pour voir une tâche ou une catégorie précise (sinon on y arrive sur la vue d'ensemble).
     var bilanKeepSelection = false
     /// Fenêtre « Sauvegarde et export ».
@@ -89,6 +96,7 @@ final class AppModel: ObservableObject {
 
     init(store: Store = .default) {
         self.store = store
+        cumulativeTime = Self.timeEnv.map { $0 == "cumulative" } ?? UserDefaults.standard.bool(forKey: "cumulativeTime")
         showCategories = Self.bilanEnv.map { $0 == "categories" } ?? UserDefaults.standard.bool(forKey: "bilanShowCategories")
         // SILLAGE_VIEW : vue affichée au lancement (captures d'écran de la documentation).
         let saved = ProcessInfo.processInfo.environment["SILLAGE_VIEW"] ?? UserDefaults.standard.string(forKey: "viewMode")
@@ -261,10 +269,20 @@ final class AppModel: ObservableObject {
     }
 
     /// Rapport par tâche sur la période affichée.
-    func taskSummaries() -> [TaskSummary] { Reports.summaries(entries, days: periodDays, now: now) }
+    func taskSummaries() -> [TaskSummary] { Reports.summaries(entries, days: periodDays, now: now, shared: sharesTime) }
+
+    /// Récap d'un jour, avec le mode de comptage du temps simultané choisi.
+    func recap(for day: Date) -> DayRecap { Recap.build(shownEntries, on: day, now: now, shared: sharesTime) }
+
+    /// Phrase qui explique le mode de comptage quand des tâches se chevauchent.
+    var simultaneousExplanation: String {
+        cumulativeTime
+            ? "Tâches simultanées : chacune compte tout son temps, le total peut dépasser le temps écoulé."
+            : "Tâches simultanées : le temps est réparti entre elles."
+    }
 
     /// Rapport par catégorie sur la période affichée.
-    func categorySummaries() -> [CategorySummary] { Reports.categorySummaries(entries, days: periodDays, now: now) }
+    func categorySummaries() -> [CategorySummary] { Reports.categorySummaries(entries, days: periodDays, now: now, shared: sharesTime) }
 
     /// Temps passé par tâche sur la période affichée (pour le bilan de la barre latérale).
     func periodTaskTotals() -> [(title: String, category: String, duration: TimeInterval)] {
@@ -389,7 +407,7 @@ final class AppModel: ObservableObject {
 
     /// Avancement de tous les objectifs pour la période en cours (aujourd'hui, cette semaine, ce mois).
     func goalProgress() -> [GoalProgress] {
-        Goals.progress(goals, entries: entries, anchor: now, now: now)
+        Goals.progress(goals, entries: entries, anchor: now, now: now, shared: sharesTime)
     }
 
     func goalProgress(forTask key: String) -> [GoalProgress] {

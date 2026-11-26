@@ -66,9 +66,16 @@ struct TasksView: View {
             }
             .pickerStyle(.segmented).labelsHidden().frame(width: 300)
             Spacer()
+            Picker("Temps simultané", selection: $model.cumulativeTime) {
+                Text("Réparti").tag(false)
+                Text("Cumulé").tag(true)
+            }
+            .pickerStyle(.segmented).labelsHidden().frame(width: 150)
+            .help("Temps simultané : réparti entre les tâches (le total est le temps écoulé), ou cumulé (chaque tâche compte tout son temps, le total peut dépasser 24 h)")
             if count > 0 {
                 Text("\(DayLogic.formatDuration(total)) · \(count) \(noun)\(count > 1 ? "s" : "")")
                     .font(Theme.rounded(13, .semibold)).foregroundStyle(Theme.muted)
+                    .lineLimit(1).minimumScaleFactor(0.7).fixedSize(horizontal: true, vertical: false)
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
@@ -252,7 +259,7 @@ struct TasksView: View {
                     }
 
                     HStack(alignment: .center, spacing: 22) {
-                        DonutChart(slices: donut, centerTitle: DayLogic.formatDuration(total), centerSubtitle: "enregistrées")
+                        DonutChart(slices: donut, centerTitle: DayLogic.formatDuration(total), centerSubtitle: model.cumulativeTime ? "cumulées" : "enregistrées")
                             .frame(width: 220, height: 220)
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(Array(zip(slices, donut)), id: \.1.id) { slice, d in
@@ -328,6 +335,8 @@ struct TasksView: View {
         for c in cats { for t in c.perDay { sums[c.category, default: [:]][key(t.day), default: 0] += t.duration } }
         let data = cats.flatMap { c in (sums[c.category] ?? [:]).map { StackBar(date: $0.key, category: c.category, hours: $0.value / 3600) } }
         let title = unit == .day ? "Temps par jour" : (unit == .weekOfYear ? "Temps par semaine" : "Temps par mois")
+        let bucketCount = Set(data.map(\.date)).count
+        let singleBucket = bucketCount == 1
         return VStack(alignment: .leading, spacing: 10) {
             Text(title).sectionLabel()
             Chart(data) { b in
@@ -343,9 +352,15 @@ struct TasksView: View {
                 }
             }
             .chartXAxis {
-                AxisMarks(values: unit == .day && Set(data.map(\.date)).count > 14 ? .stride(by: .day, count: 7) : .automatic) { _ in
-                    AxisValueLabel(format: unit == .month ? .dateTime.month(.abbreviated) : .dateTime.day().month(.abbreviated), anchor: .top)
-                        .font(Theme.rounded(10))
+                if singleBucket {
+                    AxisMarks(values: Array(Set(data.map(\.date)))) { _ in
+                        AxisValueLabel(format: .dateTime.day().month(.abbreviated), anchor: .top).font(Theme.rounded(10))
+                    }
+                } else {
+                    AxisMarks(values: unit == .day && bucketCount > 14 ? AxisMarkValues.stride(by: .day, count: 7) : .automatic) { _ in
+                        AxisValueLabel(format: unit == .month ? .dateTime.month(.abbreviated) : .dateTime.day().month(.abbreviated), anchor: .top)
+                            .font(Theme.rounded(10))
+                    }
                 }
             }
             .frame(height: 220)
@@ -467,11 +482,17 @@ struct TasksView: View {
                 }
             }
             .chartXAxis {
-                // Une étiquette par semaine quand il y a beaucoup de jours, pour éviter les chevauchements.
-                AxisMarks(values: data.unit == .day && data.bars.count > 14 ? .stride(by: .day, count: 7) : .automatic) { _ in
-                    AxisValueLabel(format: data.unit == .month ? .dateTime.month(.abbreviated) : .dateTime.day().month(.abbreviated),
-                                   anchor: .top)
-                        .font(Theme.rounded(10))
+                // Une seule étiquette pour un seul jour ; une par semaine quand il y a beaucoup de jours, pour éviter les chevauchements.
+                if data.bars.count == 1 {
+                    AxisMarks(values: data.bars.map(\.date)) { _ in
+                        AxisValueLabel(format: .dateTime.day().month(.abbreviated), anchor: .top).font(Theme.rounded(10))
+                    }
+                } else {
+                    AxisMarks(values: data.unit == .day && data.bars.count > 14 ? AxisMarkValues.stride(by: .day, count: 7) : .automatic) { _ in
+                        AxisValueLabel(format: data.unit == .month ? .dateTime.month(.abbreviated) : .dateTime.day().month(.abbreviated),
+                                       anchor: .top)
+                            .font(Theme.rounded(10))
+                    }
                 }
             }
             .frame(height: 190)

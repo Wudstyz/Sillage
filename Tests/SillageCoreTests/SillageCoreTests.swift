@@ -823,4 +823,37 @@ final class SillageCoreTests: XCTestCase {
         XCTAssertEqual(many.reduce(0) { $0 + $1.value }, items.reduce(0) { $0 + $1.value })   // rien ne se perd
         XCTAssertFalse(ChartData.slices(items, maxSlices: 5).contains { $0.label == "Zéro" })  // les valeurs nulles sont ignorées
     }
+
+    // MARK: Temps simultané : réparti ou cumulé
+
+    func testCumulativeModeCanExceedElapsedTimeAndTwentyFourHours() {
+        let now = at(23, 59)
+        // deux tâches de 20 h en parallèle (4 h → 24 h) : 40 h cumulées pour 20 h écoulées
+        let list = [entry("SFCO", at(4), at(24), .actual, "Travail"), entry("Sillage", at(4), at(24), .actual, "Loisirs")]
+        let hour: TimeInterval = 3600
+        let shared = DayLogic.totals(list, on: day, now: now, shared: true, calendar: cal).reduce(0) { $0 + $1.duration }
+        let cumulative = DayLogic.totals(list, on: day, now: now, shared: false, calendar: cal).reduce(0) { $0 + $1.duration }
+        XCTAssertEqual(shared, 20 * hour)                                   // réparti : le temps écoulé
+        XCTAssertEqual(cumulative, 40 * hour)                               // cumulé : plus que la journée
+        let three = list + [entry("Facture", at(0), at(24), .actual, "Autre")]
+        let day24 = DayLogic.totals(three, on: day, now: now, shared: false, calendar: cal).reduce(0) { $0 + $1.duration }
+        XCTAssertEqual(day24, 64 * hour)                                    // 20 + 20 + 24 : bien au-delà de 24 h
+    }
+
+    func testRecapAndGoalsFollowTheCountingMode() {
+        let now = at(18)
+        let list = [entry("SFCO", at(9), at(13), .actual, "Travail"), entry("Sillage", at(10), at(14), .actual, "Loisirs")]
+        let hour: TimeInterval = 3600
+        let shared = Recap.build(list, on: day, now: now, shared: true, calendar: cal)
+        let cumulative = Recap.build(list, on: day, now: now, shared: false, calendar: cal)
+        XCTAssertEqual(shared.tracked, 5 * hour); XCTAssertEqual(cumulative.tracked, 8 * hour)
+        XCTAssertEqual(shared.elapsed, 5 * hour); XCTAssertEqual(cumulative.elapsed, 5 * hour)    // le temps écoulé ne dépend pas du mode
+        XCTAssertEqual(cumulative.tasks.map(\.duration), [4 * hour, 4 * hour])                    // chaque tâche garde tout son temps
+        XCTAssertTrue(Recap.markdown(cumulative, now: now).contains("temps cumulé (5 h 00 de temps écoulé)"))
+        XCTAssertTrue(Recap.markdown(cumulative, now: now).contains("(temps écoulé : 5 h 00)"))
+        XCTAssertTrue(Recap.markdown(shared, now: now).contains("le temps est réparti entre elles"))
+        let goal = Goal(taskKey: "sfco", title: "SFCO", hours: 10, period: .day)
+        XCTAssertEqual(Goals.progress(goal, entries: list, anchor: now, now: now, shared: true, calendar: cal).done, 2.5 * hour)   // 1 h seul + la moitié des 3 h communes
+        XCTAssertEqual(Goals.progress(goal, entries: list, anchor: now, now: now, shared: false, calendar: cal).done, 4 * hour)
+    }
 }

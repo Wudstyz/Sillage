@@ -66,17 +66,18 @@ public struct GoalProgress: Equatable, Identifiable, Sendable {
 }
 
 public enum Goals {
-    /// Avancement d'un objectif pour la période qui contient `anchor` (le temps simultané est réparti entre les tâches).
-    public static func progress(_ goal: Goal, entries: [Entry], anchor: Date, now: Date,
+    /// Avancement d'un objectif pour la période qui contient `anchor`.
+    /// `shared` : le temps simultané est réparti entre les tâches (sinon chaque tâche compte tout son temps).
+    public static func progress(_ goal: Goal, entries: [Entry], anchor: Date, now: Date, shared: Bool = true,
                                 calendar: Calendar = .current) -> GoalProgress {
         let days = Reports.days(for: goal.period.reportPeriod, anchor: anchor, entries: entries, now: now, calendar: calendar)
         var done: TimeInterval = 0
         for day in days {
             if let key = goal.taskKey {
-                done += DayLogic.taskTotals(entries, on: day, now: now, calendar: calendar)
+                done += DayLogic.taskTotals(entries, on: day, now: now, shared: shared, calendar: calendar)
                     .filter { DayLogic.taskKey($0.title) == key }.reduce(0) { $0 + $1.duration }
             } else if let category = goal.category {
-                done += DayLogic.totals(entries, on: day, now: now, calendar: calendar)
+                done += DayLogic.totals(entries, on: day, now: now, shared: shared, calendar: calendar)
                     .filter { $0.category == category }.reduce(0) { $0 + $1.duration }
             }
         }
@@ -89,8 +90,8 @@ public enum Goals {
         return GoalProgress(goal: goal, done: done, state: state, daysLeft: days.filter { $0 >= today }.count)
     }
 
-    public static func progress(_ goals: [Goal], entries: [Entry], anchor: Date, now: Date,
+    public static func progress(_ goals: [Goal], entries: [Entry], anchor: Date, now: Date, shared: Bool = true,
                                 calendar: Calendar = .current) -> [GoalProgress] {
-        goals.map { progress($0, entries: entries, anchor: anchor, now: now, calendar: calendar) }
+        goals.map { progress($0, entries: entries, anchor: anchor, now: now, shared: shared, calendar: calendar) }
     }
 }

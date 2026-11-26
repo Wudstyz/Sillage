@@ -41,6 +41,7 @@ La vue **Bilan** (⌘4) s'ouvre sur une **vue d'ensemble** : un **camembert** de
 
 - **Tâches / Catégories** : regrouper par tâche (« SFCO », « Sillage »…) ou par catégorie (Travail, Repas, Sommeil…). Les tâches de même titre sont regroupées (« SFCO », « sfco » et « SFCO » = une seule tâche).
 - **Jour / Semaine / Mois / Tout** : la période du camembert et des listes (**Tout** = depuis votre première entrée).
+- **Réparti / Cumulé** : comment compter le temps quand plusieurs tâches tournent en même temps. **Réparti** (par défaut) partage le temps entre elles : deux tâches pendant 3 h donnent 1 h 30 chacune, et le total est le temps réellement écoulé (jamais plus de 24 h par jour). **Cumulé** donne à chaque tâche tout son temps : le total peut dépasser le temps écoulé, et même 24 h par jour, ce qui est normal quand on mène plusieurs choses de front. Le réglage vaut partout (bilans, camembert, mois, récap, objectifs) et se change aussi depuis la barre latérale ou le récap.
 
 Un clic sur une part du camembert, sur une ligne de la légende ou de la liste ouvre le **détail** ; « Vue d'ensemble » en haut de la liste y ramène. Le détail d'une **tâche** montre son **total, ses séances, ses jours actifs, sa moyenne**, un **graphique** (par jour, ou par semaine / mois sur une longue période) et la liste de ses séances, avec leurs notes.
 
@@ -87,7 +88,7 @@ La tâche en cours et son chronomètre sont visibles en permanence. Le panneau m
 | Lancer une activité courante (douche, repas, sommeil, trajet, pause, sport) | Un clic sur un **raccourci** |
 | Reprendre une tâche déjà faite | Section **Récents** : un clic la relance avec sa catégorie |
 | Enchaîner deux tâches | Case « Terminer la tâche en cours » (cochée par défaut) |
-| Travailler sur deux choses à la fois | **Décocher** « Terminer la tâche en cours » : les deux restent en cours, côte à côte. Le bilan **répartit le temps** entre elles (deux tâches pendant 3 h : 1 h 30 chacune), donc le total reste le temps réellement écoulé |
+| Travailler sur deux choses à la fois | **Décocher** « Terminer la tâche en cours » : les deux restent en cours, côte à côte. Par défaut, le bilan **répartit le temps** entre elles (deux tâches pendant 3 h : 1 h 30 chacune), donc le total reste le temps réellement écoulé ; l'interrupteur **Réparti / Cumulé** (Bilan, barre latérale, récap) fait compter à chacune tout son temps, et le total peut alors dépasser 24 h |
 | Terminer une tâche | Bouton ■ de sa carte « En cours » |
 | Noter ce que j'ai fait | Champ **Notes** de la fiche (clic sur un bloc), ou « Ajouter une note… » sur la carte de la tâche en cours. Les notes apparaissent dans la liste des séances, le récap et le CSV |
 | Noter une activité déjà passée | **+ → Activité passée** (⇧⌘N) |

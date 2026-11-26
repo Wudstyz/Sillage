@@ -41,6 +41,7 @@ The **Bilan** (Summary) view (⌘4) opens on an **overview**: a **pie chart** of
 
 - **Tâches / Catégories** (Tasks / Categories): group by task (“SFCO”, “Sillage”…) or by category (Work, Meals, Sleep…). Tasks with the same title are grouped (“SFCO”, “sfco” and “SFCO” = one task).
 - **Jour / Semaine / Mois / Tout** (Day / Week / Month / All time): the period of the pie chart and the lists (**Tout** = since your first entry).
+- **Réparti / Cumulé** (Shared / Cumulative): how to count time when several tasks run at once. **Réparti** (default) shares the time between them: two tasks for 3 h give 1 h 30 each, and the total is the time actually elapsed (never more than 24 h a day). **Cumulé** gives each task all of its time: the total can exceed the elapsed time, even 24 h a day, which is normal when you juggle several things. The setting applies everywhere (summaries, pie chart, month, recap, goals) and can also be changed from the sidebar or the recap.
 
 Click a slice, a legend line or a list line to open its **detail**; “Vue d'ensemble” (Overview) at the top of the list takes you back. A **task's** detail shows its **total, sessions, active days, average**, a **chart** (per day, or per week / month over a long period) and the list of its sessions, with their notes.
 
@@ -87,7 +88,7 @@ The running task and its timer are always visible. The panel shows the next appo
 | Launch a common activity (shower, meal, sleep, commute, break, sport) | One click on a **shortcut** |
 | Resume a task I already did | **Récents** (Recent) section: one click restarts it with its category |
 | Switch from one task to the next | “Terminer la tâche en cours” (Stop the running task) checkbox, on by default |
-| Work on two things at once | **Untick** “Terminer la tâche en cours”: both stay running, side by side. The summary **shares the time** between them (two tasks for 3 h: 1 h 30 each), so the total stays the time actually elapsed |
+| Work on two things at once | **Untick** “Terminer la tâche en cours”: both stay running, side by side. By default the summary **shares the time** between them (two tasks for 3 h: 1 h 30 each), so the total stays the time actually elapsed; the **Réparti / Cumulé** switch (Summary, sidebar, recap) makes each count all of its time, and the total can then exceed 24 h |
 | Stop a task | ■ button on its “En cours” (Running) card |
 | Note what I did | **Notes** field of the sheet (click a block), or “Ajouter une note…” on the running task's card. Notes appear in the session list, the recap and the CSV |
 | Log something already done | **+ → Activité passée** (⇧⌘N) |

@@ -8,7 +8,7 @@ struct RecapView: View {
     @State private var copied = false
 
     var body: some View {
-        let recap = Recap.build(model.shownEntries, on: model.day, now: model.now)
+        let recap = model.recap(for: model.day)
         let text = Recap.markdown(recap, now: model.now)
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
@@ -17,6 +17,11 @@ struct RecapView: View {
                     empty
                 } else {
                     cards(recap)
+                    if recap.hasSimultaneous && !recap.shared {
+                        Label("Temps cumulé : \(DayLogic.formatDuration(recap.tracked)) enregistrés pour \(DayLogic.formatDuration(recap.elapsed)) écoulées.",
+                              systemImage: "square.stack.3d.up")
+                            .font(Theme.rounded(12, .medium)).foregroundStyle(Theme.muted)
+                    }
                     if !recap.segments.isEmpty { journey(recap) }
                     if !recap.appointments.isEmpty { appointments(recap) }
                     if !recap.categories.isEmpty { categories(recap) }
@@ -40,6 +45,7 @@ struct RecapView: View {
                     .font(Theme.rounded(30, .bold)).foregroundStyle(Theme.ink)
             }
             Spacer()
+            if recap.hasSimultaneous { timeModePicker }
             if !recap.isEmpty {
                 Button {
                     NSPasteboard.general.clearContents()
@@ -55,6 +61,15 @@ struct RecapView: View {
                     .buttonStyle(ChipButtonStyle(category: "Autre"))
             }
         }
+    }
+
+    private var timeModePicker: some View {
+        Picker("Temps simultané", selection: $model.cumulativeTime) {
+            Text("Réparti").tag(false)
+            Text("Cumulé").tag(true)
+        }
+        .pickerStyle(.segmented).labelsHidden().frame(width: 150)
+        .help("Temps simultané : réparti entre les tâches, ou cumulé (chaque tâche compte tout son temps)")
     }
 
     private var empty: some View {
@@ -115,7 +130,7 @@ struct RecapView: View {
                     } else {
                         Text(seg.title).font(Theme.rounded(15, .semibold)).foregroundStyle(Theme.ink).lineLimit(1)
                         Text(seg.entries.count > 1
-                             ? "\(seg.entries.count) tâches simultanées · temps réparti"
+                             ? "\(seg.entries.count) tâches simultanées · \(model.cumulativeTime ? "temps cumulé" : "temps réparti")"
                              : seg.category)
                             .font(Theme.rounded(12)).foregroundStyle(Theme.muted)
                         ForEach(seg.notes, id: \.self) { note in
@@ -190,7 +205,7 @@ struct RecapView: View {
         return VStack(alignment: .leading, spacing: 10) {
             Text("Temps par catégorie").sectionLabel()
             HStack(alignment: .center, spacing: 24) {
-                DonutChart(slices: slices, centerTitle: DayLogic.formatDuration(total), centerSubtitle: "enregistrées", lineWidth: 30)
+                DonutChart(slices: slices, centerTitle: DayLogic.formatDuration(total), centerSubtitle: model.cumulativeTime ? "cumulées" : "enregistrées", lineWidth: 30)
                     .frame(width: 190, height: 190)
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(recap.categories, id: \.category) { c in
@@ -243,7 +258,7 @@ struct RecapView: View {
                     .buttonStyle(.plain).help("Voir le détail de « \(t.title) »")
                 }
                 if recap.hasSimultaneous {
-                    Label("Tâches simultanées : le temps est réparti entre elles.", systemImage: "square.stack.3d.up")
+                    Label(model.simultaneousExplanation, systemImage: "square.stack.3d.up")
                         .font(Theme.rounded(11, .medium)).foregroundStyle(Theme.muted)
                 }
             }
